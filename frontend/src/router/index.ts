@@ -148,18 +148,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/redeem',
-    name: 'Redeem',
-    component: () => import('@/views/user/RedeemView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: false,
-      title: 'Redeem Code',
-      titleKey: 'redeem.title',
-      descriptionKey: 'redeem.description'
-    }
-  },
-  {
     path: '/available-channels',
     name: 'UserAvailableChannels',
     component: () => import('@/views/user/AvailableChannelsView.vue'),
@@ -181,18 +169,6 @@ const routes: RouteRecordRaw[] = [
       title: 'Profile',
       titleKey: 'profile.title',
       descriptionKey: 'profile.description'
-    }
-  },
-  {
-    path: '/subscriptions',
-    name: 'Subscriptions',
-    component: () => import('@/views/user/SubscriptionsView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: false,
-      title: 'My Subscriptions',
-      titleKey: 'userSubscriptions.title',
-      descriptionKey: 'userSubscriptions.description'
     }
   },
   {

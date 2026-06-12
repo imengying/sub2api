@@ -61,13 +61,6 @@ func RegisterUserRoutes(
 			keys.DELETE("/:id", h.APIKey.Delete)
 		}
 
-		// 用户可用分组（非管理员接口）
-		groups := authenticated.Group("/groups")
-		{
-			groups.GET("/available", h.APIKey.GetAvailableGroups)
-			groups.GET("/rates", h.APIKey.GetUserGroupRates)
-		}
-
 		// 用户可用渠道（非管理员接口）
 		channels := authenticated.Group("/channels")
 		{

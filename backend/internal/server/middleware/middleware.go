@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/googleapi"
@@ -20,14 +19,14 @@ const (
 	ContextKeyUserRole ContextKey = "user_role"
 	// ContextKeyAPIKey API密钥上下文键
 	ContextKeyAPIKey ContextKey = "api_key"
-	// ContextKeySubscription 订阅上下文键
+	// ContextKeySubscription 兼容旧订阅上下文；个人版不再设置该值。
 	ContextKeySubscription ContextKey = "subscription"
 	// ContextKeyForcePlatform 强制平台（用于 /antigravity 路由）
 	ContextKeyForcePlatform ContextKey = "force_platform"
 	// ContextKeyOpsFallbackAPIKey 运维错误日志专用回退键。
-	// 鉴权早退（分组停用/删除、Key 停用/过期/额度、用户停用、IP 限制等）时，
+	// 鉴权早退（Key 停用/过期/额度、用户停用、IP 限制等）时，
 	// apiKey 已加载但尚未写入 ContextKeyAPIKey；该键让 Ops 错误日志仍能取到
-	// user/group/platform。仅供 Ops 错误日志读取，不代表请求已通过鉴权。
+	// user/platform。仅供 Ops 错误日志读取，不代表请求已通过鉴权。
 	ContextKeyOpsFallbackAPIKey ContextKey = "ops_fallback_api_key"
 )
 
@@ -110,18 +109,15 @@ func GoogleErrorWriter(c *gin.Context, status int, message string) {
 // 如果未分组且系统设置不允许未分组 Key 调度则返回 403。
 func RequireGroupAssignment(settingService *service.SettingService, writeError GatewayErrorWriter) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		apiKey, ok := GetAPIKeyFromContext(c)
-		if !ok || apiKey.GroupID != nil {
-			c.Next()
-			return
-		}
-		// 未分组 Key — 检查系统设置
-		if settingService.IsUngroupedKeySchedulingAllowed(c.Request.Context()) {
-			c.Next()
-			return
-		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyGroupUnassigned)
-		writeError(c, http.StatusForbidden, "API Key is not assigned to any group and cannot be used. Please contact the administrator to assign it to a group.")
-		c.Abort()
+		c.Next()
 	}
+}
+
+func GetSubscriptionFromContext(c *gin.Context) (*service.UserSubscription, bool) {
+	value, exists := c.Get(string(ContextKeySubscription))
+	if !exists {
+		return nil, false
+	}
+	subscription, ok := value.(*service.UserSubscription)
+	return subscription, ok
 }

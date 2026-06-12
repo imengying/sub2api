@@ -1,31 +1,40 @@
 package middleware
 
 import (
-	"context"
 	"errors"
 	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ip"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-// NewAPIKeyAuthMiddleware 创建 API Key 认证中间件
-func NewAPIKeyAuthMiddleware(apiKeyService *service.APIKeyService, subscriptionService *service.SubscriptionService, cfg *config.Config) APIKeyAuthMiddleware {
-	return APIKeyAuthMiddleware(apiKeyAuthWithSubscription(apiKeyService, subscriptionService, cfg))
+// NewAPIKeyAuthMiddleware 创建 API Key 认证中间件。
+// args 兼容旧签名中的 SubscriptionService 参数；个人版不再使用订阅中间件。
+func NewAPIKeyAuthMiddleware(apiKeyService *service.APIKeyService, args ...any) APIKeyAuthMiddleware {
+	cfg := apiKeyAuthConfigFromArgs(args...)
+	return APIKeyAuthMiddleware(apiKeyAuth(apiKeyService, cfg))
 }
 
-// apiKeyAuthWithSubscription API Key认证中间件（支持订阅验证）
+func apiKeyAuthConfigFromArgs(args ...any) *config.Config {
+	for i := len(args) - 1; i >= 0; i-- {
+		if cfg, ok := args[i].(*config.Config); ok {
+			return cfg
+		}
+	}
+	return &config.Config{}
+}
+
+// apiKeyAuth API Key认证中间件
 //
 // 中间件职责分为两层：
 //   - 鉴权（Authentication）：验证 Key 有效性、用户状态、IP 限制 —— 始终执行
-//   - 计费执行（Billing Enforcement）：过期/配额/订阅/余额检查 —— skipBilling 时整块跳过
+//   - 计费执行（Billing Enforcement）：过期/配额/余额检查 —— skipBilling 时整块跳过
 //
 // /v1/usage 端点只需鉴权，不需要计费执行（允许过期/配额耗尽的 Key 查询自身用量）。
-func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscriptionService *service.SubscriptionService, cfg *config.Config) gin.HandlerFunc {
+func apiKeyAuth(apiKeyService *service.APIKeyService, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// ── 1. 提取 API Key ──────────────────────────────────────────
 
@@ -76,7 +85,7 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			return
 		}
 
-		// apiKey 已加载（含 User/Group）。即便后续因分组停用/Key 停用/用户停用/
+		// apiKey 已加载（含 User）。即便后续因 Key 停用/用户停用/
 		// IP 限制等早退中断，也让 Ops 错误日志能回退取到 user/group/platform。
 		SetOpsFallbackAPIKey(c, apiKey)
 
@@ -116,37 +125,8 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			AbortWithError(c, 401, "USER_INACTIVE", "User account is not active")
 			return
 		}
-		if abortIfAPIKeyGroupUnavailable(c, apiKey) {
-			return
-		}
-		if abortIfAPIKeyGroupNotAllowed(c, apiKey) {
-			return
-		}
-
-        // ── 5. 加载订阅（订阅模式时始终加载） ───────────────────────
-
 		// skipBilling: /v1/usage 只需鉴权，跳过所有计费执行
 		skipBilling := c.Request.URL.Path == "/v1/usage"
-
-		var subscription *service.UserSubscription
-		isSubscriptionType := apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
-
-		if isSubscriptionType && subscriptionService != nil {
-			sub, subErr := subscriptionService.GetActiveSubscription(
-				c.Request.Context(),
-				apiKey.User.ID,
-				apiKey.Group.ID,
-			)
-			if subErr != nil {
-				if !skipBilling {
-					AbortWithError(c, 403, "SUBSCRIPTION_NOT_FOUND", "No active subscription found for this group")
-					return
-				}
-				// skipBilling: 订阅不存在也放行，handler 会返回可用的数据
-			} else {
-				subscription = sub
-			}
-		}
 
 		// ── 6. 计费执行（skipBilling 时整块跳过） ────────────────────
 
@@ -171,48 +151,20 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 				return
 			}
 
-			// 订阅模式：验证订阅限额
-			if subscription != nil {
-				needsMaintenance, validateErr := subscriptionService.ValidateAndCheckLimits(subscription, apiKey.Group)
-				if validateErr != nil {
-					code := "SUBSCRIPTION_INVALID"
-					status := 403
-					if errors.Is(validateErr, service.ErrDailyLimitExceeded) ||
-						errors.Is(validateErr, service.ErrWeeklyLimitExceeded) ||
-						errors.Is(validateErr, service.ErrMonthlyLimitExceeded) {
-						code = "USAGE_LIMIT_EXCEEDED"
-						status = 429
-					}
-					AbortWithError(c, status, code, validateErr.Error())
-					return
-				}
-
-				// 窗口维护异步化（不阻塞请求）
-				if needsMaintenance {
-					maintenanceCopy := *subscription
-					subscriptionService.DoWindowMaintenance(&maintenanceCopy)
-				}
-			} else {
-				// 非订阅模式 或 订阅模式但 subscriptionService 未注入：回退到余额检查
-				if apiKey.User.Balance <= 0 {
-					AbortWithError(c, 403, "INSUFFICIENT_BALANCE", "Insufficient account balance")
-					return
-				}
+			if apiKey.User.Balance <= 0 {
+				AbortWithError(c, 403, "INSUFFICIENT_BALANCE", "Insufficient account balance")
+				return
 			}
 		}
 
 		// ── 7. 设置上下文 → Next ─────────────────────────────────────
 
-		if subscription != nil {
-			c.Set(string(ContextKeySubscription), subscription)
-		}
 		c.Set(string(ContextKeyAPIKey), apiKey)
 		c.Set(string(ContextKeyUser), AuthSubject{
 			UserID:      apiKey.User.ID,
 			Concurrency: apiKey.User.Concurrency,
 		})
 		c.Set(string(ContextKeyUserRole), apiKey.User.Role)
-		setGroupContext(c, apiKey.Group)
 		_ = apiKeyService.TouchLastUsed(c.Request.Context(), apiKey.ID)
 
 		c.Next()
@@ -247,69 +199,4 @@ func GetOpsFallbackAPIKey(c *gin.Context) (*service.APIKey, bool) {
 	}
 	apiKey, ok := value.(*service.APIKey)
 	return apiKey, ok
-}
-
-// GetSubscriptionFromContext 从上下文中获取订阅信息
-func GetSubscriptionFromContext(c *gin.Context) (*service.UserSubscription, bool) {
-	value, exists := c.Get(string(ContextKeySubscription))
-	if !exists {
-		return nil, false
-	}
-	subscription, ok := value.(*service.UserSubscription)
-	return subscription, ok
-}
-
-func setGroupContext(c *gin.Context, group *service.Group) {
-	if !service.IsGroupContextValid(group) {
-		return
-	}
-	if existing, ok := c.Request.Context().Value(ctxkey.Group).(*service.Group); ok && existing != nil && existing.ID == group.ID && service.IsGroupContextValid(existing) {
-		return
-	}
-	ctx := context.WithValue(c.Request.Context(), ctxkey.Group, group)
-	c.Request = c.Request.WithContext(ctx)
-}
-
-func abortIfAPIKeyGroupUnavailable(c *gin.Context, apiKey *service.APIKey) bool {
-	code, message, ok := validateAPIKeyGroupAvailable(apiKey)
-	if ok {
-		return false
-	}
-	service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyGroupUnavailable)
-	AbortWithError(c, 403, code, message)
-	return true
-}
-
-func abortIfAPIKeyGroupNotAllowed(c *gin.Context, apiKey *service.APIKey) bool {
-	if validateAPIKeyGroupAllowed(apiKey) {
-		return false
-	}
-	service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyGroupUnavailable)
-	AbortWithError(c, 403, "GROUP_NOT_ALLOWED", "API Key 所属专属分组不再允许当前用户使用")
-	return true
-}
-
-func validateAPIKeyGroupAllowed(apiKey *service.APIKey) bool {
-	if apiKey == nil || apiKey.GroupID == nil || apiKey.User == nil || apiKey.Group == nil {
-		return true
-	}
-	group := apiKey.Group
-	if group.IsSubscriptionType() {
-		return true
-	}
-	return apiKey.User.CanBindGroup(group.ID, group.IsExclusive)
-}
-
-func validateAPIKeyGroupAvailable(apiKey *service.APIKey) (string, string, bool) {
-	if apiKey == nil || apiKey.GroupID == nil {
-		return "", "", true
-	}
-	group := apiKey.Group
-	if group == nil || strings.EqualFold(group.Status, "deleted") {
-		return "GROUP_DELETED", "API Key 所属分组已删除", false
-	}
-	if !group.IsActive() {
-		return "GROUP_DISABLED", "API Key 所属分组已停用", false
-	}
-	return "", "", true
 }

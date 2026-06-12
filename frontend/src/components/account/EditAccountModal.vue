@@ -2376,7 +2376,6 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import type {
@@ -2433,7 +2432,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const appStore = useAppStore()
-const authStore = useAuthStore()
 
 // Platform-specific hint for Base URL
 const baseUrlHint = computed(() => {

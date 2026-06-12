@@ -23,12 +23,19 @@ func (s *APIKeyService) InvalidateAuthCacheByUserID(ctx context.Context, userID 
 	s.deleteAuthCacheByKeys(ctx, keys)
 }
 
-// InvalidateAuthCacheByGroupID 清除分组相关的 API Key 认证缓存
+type apiKeyGroupKeyLister interface {
+	ListKeysByGroupID(ctx context.Context, groupID int64) ([]string, error)
+}
+
 func (s *APIKeyService) InvalidateAuthCacheByGroupID(ctx context.Context, groupID int64) {
-	if groupID <= 0 {
+	if groupID <= 0 || s == nil || s.apiKeyRepo == nil {
 		return
 	}
-	keys, err := s.apiKeyRepo.ListKeysByGroupID(ctx, groupID)
+	lister, ok := s.apiKeyRepo.(apiKeyGroupKeyLister)
+	if !ok {
+		return
+	}
+	keys, err := lister.ListKeysByGroupID(ctx, groupID)
 	if err != nil {
 		return
 	}

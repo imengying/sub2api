@@ -5,14 +5,13 @@ import Toast from '@/components/common/Toast.vue'
 import NavigationProgress from '@/components/common/NavigationProgress.vue'
 import AdminComplianceDialog from '@/components/admin/AdminComplianceDialog.vue'
 import { resolveDocumentTitle } from '@/router/title'
-import { useAppStore, useAuthStore, useSubscriptionStore, useAdminComplianceStore } from '@/stores'
+import { useAppStore, useAuthStore, useAdminComplianceStore } from '@/stores'
 import { getSetupStatus } from '@/api/setup'
 
 const router = useRouter()
 const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
-const subscriptionStore = useSubscriptionStore()
 const adminComplianceStore = useAdminComplianceStore()
 
 /**
@@ -57,14 +56,7 @@ watch(
         })
       }
 
-      // User logged in: preload subscriptions and start polling
-      subscriptionStore.fetchActiveSubscriptions().catch((error) => {
-        console.error('Failed to preload subscriptions:', error)
-      })
-      subscriptionStore.startPolling()
     } else {
-      // User logged out: clear data and stop polling
-      subscriptionStore.clear()
       adminComplianceStore.reset()
     }
   },

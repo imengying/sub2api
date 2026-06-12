@@ -49,7 +49,6 @@ type AccountRepository interface {
 	ClearError(ctx context.Context, id int64) error
 	SetSchedulable(ctx context.Context, id int64, schedulable bool) error
 	AutoPauseExpiredAccounts(ctx context.Context, now time.Time) (int64, error)
-	BindGroups(ctx context.Context, accountID int64, groupIDs []int64) error
 
 	ListSchedulable(ctx context.Context) ([]Account, error)
 	ListSchedulableByGroupID(ctx context.Context, groupID int64) ([]Account, error)
@@ -109,7 +108,6 @@ type CreateAccountRequest struct {
 	ProxyID            *int64         `json:"proxy_id"`
 	Concurrency        int            `json:"concurrency"`
 	Priority           int            `json:"priority"`
-	GroupIDs           []int64        `json:"group_ids"`
 	ExpiresAt          *time.Time     `json:"expires_at"`
 	AutoPauseOnExpired *bool          `json:"auto_pause_on_expired"`
 }
@@ -124,7 +122,6 @@ type UpdateAccountRequest struct {
 	Concurrency        *int            `json:"concurrency"`
 	Priority           *int            `json:"priority"`
 	Status             *string         `json:"status"`
-	GroupIDs           *[]int64        `json:"group_ids"`
 	ExpiresAt          *time.Time      `json:"expires_at"`
 	AutoPauseOnExpired *bool           `json:"auto_pause_on_expired"`
 }
@@ -132,30 +129,17 @@ type UpdateAccountRequest struct {
 // AccountService 账号管理服务
 type AccountService struct {
 	accountRepo AccountRepository
-	groupRepo   GroupRepository
-}
-
-type groupExistenceBatchChecker interface {
-	ExistsByIDs(ctx context.Context, ids []int64) (map[int64]bool, error)
 }
 
 // NewAccountService 创建账号服务实例
-func NewAccountService(accountRepo AccountRepository, groupRepo GroupRepository) *AccountService {
+func NewAccountService(accountRepo AccountRepository) *AccountService {
 	return &AccountService{
 		accountRepo: accountRepo,
-		groupRepo:   groupRepo,
 	}
 }
 
 // Create 创建账号
 func (s *AccountService) Create(ctx context.Context, req CreateAccountRequest) (*Account, error) {
-	// 验证分组是否存在（如果指定了分组）
-	if len(req.GroupIDs) > 0 {
-		if err := s.validateGroupIDsExist(ctx, req.GroupIDs); err != nil {
-			return nil, err
-		}
-	}
-
 	// 创建账号
 	account := &Account{
 		Name:        req.Name,
@@ -178,26 +162,6 @@ func (s *AccountService) Create(ctx context.Context, req CreateAccountRequest) (
 
 	if err := s.accountRepo.Create(ctx, account); err != nil {
 		return nil, fmt.Errorf("create account: %w", err)
-	}
-
-	// require_oauth_only 检查：apikey 类型账号不可加入限制分组
-	if account.Type == AccountTypeAPIKey && len(req.GroupIDs) > 0 {
-		for _, gid := range req.GroupIDs {
-			g, err := s.groupRepo.GetByID(ctx, gid)
-			if err != nil {
-				return nil, err
-			}
-			if g.RequireOAuthOnly && (g.Platform == PlatformOpenAI || g.Platform == PlatformAntigravity || g.Platform == PlatformAnthropic || g.Platform == PlatformGemini) {
-				return nil, fmt.Errorf("分组 [%s] 仅允许 OAuth 账号，apikey 类型账号无法加入", g.Name)
-			}
-		}
-	}
-
-	// 绑定分组
-	if len(req.GroupIDs) > 0 {
-		if err := s.accountRepo.BindGroups(ctx, account.ID, req.GroupIDs); err != nil {
-			return nil, fmt.Errorf("bind groups: %w", err)
-		}
 	}
 
 	return account, nil
@@ -284,36 +248,9 @@ func (s *AccountService) Update(ctx context.Context, id int64, req UpdateAccount
 		account.AutoPauseOnExpired = *req.AutoPauseOnExpired
 	}
 
-	// 先验证分组是否存在（在任何写操作之前）
-	if req.GroupIDs != nil {
-		if err := s.validateGroupIDsExist(ctx, *req.GroupIDs); err != nil {
-			return nil, err
-		}
-	}
-
 	// 执行更新
 	if err := s.accountRepo.Update(ctx, account); err != nil {
 		return nil, fmt.Errorf("update account: %w", err)
-	}
-
-	// require_oauth_only 检查
-	if account.Type == AccountTypeAPIKey && req.GroupIDs != nil {
-		for _, gid := range *req.GroupIDs {
-			g, err := s.groupRepo.GetByID(ctx, gid)
-			if err != nil {
-				return nil, err
-			}
-			if g.RequireOAuthOnly && (g.Platform == PlatformOpenAI || g.Platform == PlatformAntigravity || g.Platform == PlatformAnthropic || g.Platform == PlatformGemini) {
-				return nil, fmt.Errorf("分组 [%s] 仅允许 OAuth 账号，apikey 类型账号无法加入", g.Name)
-			}
-		}
-	}
-
-	// 绑定分组
-	if req.GroupIDs != nil {
-		if err := s.accountRepo.BindGroups(ctx, account.ID, *req.GroupIDs); err != nil {
-			return nil, fmt.Errorf("bind groups: %w", err)
-		}
 	}
 
 	return account, nil
@@ -337,39 +274,6 @@ func (s *AccountService) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("delete account: %w", err)
 	}
 
-	return nil
-}
-
-func (s *AccountService) validateGroupIDsExist(ctx context.Context, groupIDs []int64) error {
-	if len(groupIDs) == 0 {
-		return nil
-	}
-	if s.groupRepo == nil {
-		return fmt.Errorf("group repository not configured")
-	}
-
-	if batchChecker, ok := s.groupRepo.(groupExistenceBatchChecker); ok {
-		existsByID, err := batchChecker.ExistsByIDs(ctx, groupIDs)
-		if err != nil {
-			return fmt.Errorf("check groups exists: %w", err)
-		}
-		for _, groupID := range groupIDs {
-			if groupID <= 0 {
-				return fmt.Errorf("get group: %w", ErrGroupNotFound)
-			}
-			if !existsByID[groupID] {
-				return fmt.Errorf("get group: %w", ErrGroupNotFound)
-			}
-		}
-		return nil
-	}
-
-	for _, groupID := range groupIDs {
-		_, err := s.groupRepo.GetByID(ctx, groupID)
-		if err != nil {
-			return fmt.Errorf("get group: %w", err)
-		}
-	}
 	return nil
 }
 

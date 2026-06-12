@@ -20,7 +20,6 @@ func UserFromServiceShallow(u *service.User) *User {
 		Balance:                    u.Balance,
 		Concurrency:                u.Concurrency,
 		Status:                     u.Status,
-		AllowedGroups:              u.AllowedGroups,
 		LastActiveAt:               u.LastActiveAt,
 		CreatedAt:                  u.CreatedAt,
 		UpdatedAt:                  u.UpdatedAt,
@@ -46,13 +45,6 @@ func UserFromService(u *service.User) *User {
 			out.APIKeys = append(out.APIKeys, *APIKeyFromService(&k))
 		}
 	}
-	if len(u.Subscriptions) > 0 {
-		out.Subscriptions = make([]UserSubscription, 0, len(u.Subscriptions))
-		for i := range u.Subscriptions {
-			s := u.Subscriptions[i]
-			out.Subscriptions = append(out.Subscriptions, *UserSubscriptionFromService(&s))
-		}
-	}
 	return out
 }
 
@@ -70,7 +62,6 @@ func UserFromServiceAdmin(u *service.User) *AdminUser {
 		User:       *base,
 		Notes:      u.Notes,
 		LastUsedAt: u.LastUsedAt,
-		GroupRates: u.GroupRates,
 	}
 }
 
@@ -83,7 +74,6 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 		UserID:        k.UserID,
 		Key:           k.Key,
 		Name:          k.Name,
-		GroupID:       k.GroupID,
 		Status:        k.Status,
 		IPWhitelist:   k.IPWhitelist,
 		IPBlacklist:   k.IPBlacklist,
@@ -103,7 +93,6 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 		Window1dStart: k.Window1dStart,
 		Window7dStart: k.Window7dStart,
 		User:          UserFromServiceShallow(k.User),
-		Group:         GroupFromServiceShallow(k.Group),
 	}
 	if k.Window5hStart != nil && !service.IsWindowExpired(k.Window5hStart, service.RateLimitWindow5h) {
 		t := k.Window5hStart.Add(service.RateLimitWindow5h)
@@ -118,82 +107,6 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 		out.Reset7dAt = &t
 	}
 	return out
-}
-
-func GroupFromServiceShallow(g *service.Group) *Group {
-	if g == nil {
-		return nil
-	}
-	out := groupFromServiceBase(g)
-	return &out
-}
-
-func GroupFromService(g *service.Group) *Group {
-	if g == nil {
-		return nil
-	}
-	return GroupFromServiceShallow(g)
-}
-
-// GroupFromServiceAdmin converts a service Group to DTO for admin users.
-// It includes internal fields like model_routing and account_count.
-func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
-	if g == nil {
-		return nil
-	}
-	out := &AdminGroup{
-		Group:                       groupFromServiceBase(g),
-		ModelRouting:                g.ModelRouting,
-		ModelRoutingEnabled:         g.ModelRoutingEnabled,
-		MCPXMLInject:                g.MCPXMLInject,
-		DefaultMappedModel:          g.DefaultMappedModel,
-		MessagesDispatchModelConfig: g.MessagesDispatchModelConfig,
-		ModelsListConfig:            g.ModelsListConfig,
-		SupportedModelScopes:        g.SupportedModelScopes,
-		AccountCount:                g.AccountCount,
-		ActiveAccountCount:          g.ActiveAccountCount,
-		RateLimitedAccountCount:     g.RateLimitedAccountCount,
-		SortOrder:                   g.SortOrder,
-	}
-	if len(g.AccountGroups) > 0 {
-		out.AccountGroups = make([]AccountGroup, 0, len(g.AccountGroups))
-		for i := range g.AccountGroups {
-			ag := g.AccountGroups[i]
-			out.AccountGroups = append(out.AccountGroups, *AccountGroupFromService(&ag))
-		}
-	}
-	return out
-}
-
-func groupFromServiceBase(g *service.Group) Group {
-	return Group{
-		ID:                              g.ID,
-		Name:                            g.Name,
-		Description:                     g.Description,
-		Platform:                        g.Platform,
-		RateMultiplier:                  g.RateMultiplier,
-		IsExclusive:                     g.IsExclusive,
-		Status:                          g.Status,
-		SubscriptionType:                g.SubscriptionType,
-		DailyLimitUSD:                   g.DailyLimitUSD,
-		WeeklyLimitUSD:                  g.WeeklyLimitUSD,
-		MonthlyLimitUSD:                 g.MonthlyLimitUSD,
-		AllowImageGeneration:            g.AllowImageGeneration,
-		ImageRateIndependent:            g.ImageRateIndependent,
-		ImageRateMultiplier:             g.ImageRateMultiplier,
-		ImagePrice1K:                    g.ImagePrice1K,
-		ImagePrice2K:                    g.ImagePrice2K,
-		ImagePrice4K:                    g.ImagePrice4K,
-		ClaudeCodeOnly:                  g.ClaudeCodeOnly,
-		FallbackGroupID:                 g.FallbackGroupID,
-		FallbackGroupIDOnInvalidRequest: g.FallbackGroupIDOnInvalidRequest,
-		AllowMessagesDispatch:           g.AllowMessagesDispatch,
-		RequireOAuthOnly:                g.RequireOAuthOnly,
-		RequirePrivacySet:               g.RequirePrivacySet,
-		RPMLimit:                        g.RPMLimit,
-		CreatedAt:                       g.CreatedAt,
-		UpdatedAt:                       g.UpdatedAt,
-	}
 }
 
 func AccountFromServiceShallow(a *service.Account) *Account {
@@ -233,7 +146,6 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 		SessionWindowStart:      a.SessionWindowStart,
 		SessionWindowEnd:        a.SessionWindowEnd,
 		SessionWindowStatus:     a.SessionWindowStatus,
-		GroupIDs:                a.GroupIDs,
 	}
 
 	// 提取 5h 窗口费用控制和会话数量控制配置（仅 Anthropic OAuth/SetupToken 账号有效）
@@ -371,19 +283,6 @@ func AccountFromService(a *service.Account) *Account {
 	}
 	out := AccountFromServiceShallow(a)
 	out.Proxy = ProxyFromService(a.Proxy)
-	if len(a.AccountGroups) > 0 {
-		out.AccountGroups = make([]AccountGroup, 0, len(a.AccountGroups))
-		for i := range a.AccountGroups {
-			ag := a.AccountGroups[i]
-			out.AccountGroups = append(out.AccountGroups, *AccountGroupFromService(&ag))
-		}
-	}
-	if len(a.Groups) > 0 {
-		out.Groups = make([]*Group, 0, len(a.Groups))
-		for _, g := range a.Groups {
-			out.Groups = append(out.Groups, GroupFromServiceShallow(g))
-		}
-	}
 	return out
 }
 
@@ -393,20 +292,6 @@ func timeToUnixSeconds(value *time.Time) *int64 {
 	}
 	ts := value.Unix()
 	return &ts
-}
-
-func AccountGroupFromService(ag *service.AccountGroup) *AccountGroup {
-	if ag == nil {
-		return nil
-	}
-	return &AccountGroup{
-		AccountID: ag.AccountID,
-		GroupID:   ag.GroupID,
-		Priority:  ag.Priority,
-		CreatedAt: ag.CreatedAt,
-		Account:   AccountFromServiceShallow(ag.Account),
-		Group:     GroupFromServiceShallow(ag.Group),
-	}
 }
 
 func ProxyFromService(p *service.Proxy) *Proxy {
@@ -542,10 +427,8 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		UsedAt:       rc.UsedAt,
 		CreatedAt:    rc.CreatedAt,
 		ExpiresAt:    rc.ExpiresAt,
-		GroupID:      rc.GroupID,
 		ValidityDays: rc.ValidityDays,
 		User:         UserFromServiceShallow(rc.User),
-		Group:        GroupFromServiceShallow(rc.Group),
 	}
 	if rc.IsExpired() {
 		out.Status = service.StatusExpired
@@ -591,8 +474,6 @@ func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
 		ReasoningEffort:       l.ReasoningEffort,
 		InboundEndpoint:       l.InboundEndpoint,
 		UpstreamEndpoint:      l.UpstreamEndpoint,
-		GroupID:               l.GroupID,
-		SubscriptionID:        l.SubscriptionID,
 		InputTokens:           l.InputTokens,
 		OutputTokens:          l.OutputTokens,
 		CacheCreationTokens:   l.CacheCreationTokens,
@@ -627,8 +508,6 @@ func usageLogFromServiceUser(l *service.UsageLog) UsageLog {
 		CreatedAt:             l.CreatedAt,
 		User:                  UserFromServiceShallow(l.User),
 		APIKey:                APIKeyFromService(l.APIKey),
-		Group:                 GroupFromServiceShallow(l.Group),
-		Subscription:          UserSubscriptionFromService(l.Subscription),
 	}
 }
 
@@ -674,7 +553,6 @@ func UsageCleanupTaskFromService(task *service.UsageCleanupTask) *UsageCleanupTa
 			UserID:      task.Filters.UserID,
 			APIKeyID:    task.Filters.APIKeyID,
 			AccountID:   task.Filters.AccountID,
-			GroupID:     task.Filters.GroupID,
 			Model:       task.Filters.Model,
 			RequestType: requestTypeStringPtr(task.Filters.RequestType),
 			Stream:      task.Filters.Stream,
@@ -752,7 +630,6 @@ func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscrip
 		CreatedAt:          sub.CreatedAt,
 		UpdatedAt:          sub.UpdatedAt,
 		User:               UserFromServiceShallow(sub.User),
-		Group:              GroupFromServiceShallow(sub.Group),
 	}
 }
 

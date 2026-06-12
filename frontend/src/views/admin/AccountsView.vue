@@ -400,7 +400,6 @@ import { ref, reactive, computed, onMounted, onUnmounted, toRaw, watch } from 'v
 import { useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import { useTableLoader } from '@/composables/useTableLoader'
 import { useSwipeSelect, type SwipeSelectVirtualContext } from '@/composables/useSwipeSelect'
@@ -438,7 +437,6 @@ import type { Account, AccountPlatform, AccountType, Proxy as AccountProxy, Admi
 
 const { t } = useI18n()
 const appStore = useAppStore()
-const authStore = useAuthStore()
 
 const proxies = ref<AccountProxy[]>([])
 const groups = ref<AdminGroup[]>([])

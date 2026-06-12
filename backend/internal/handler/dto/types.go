@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"time"
-
-	"github.com/Wei-Shaw/sub2api/internal/domain"
 )
 
 type User struct {
@@ -16,7 +14,6 @@ type User struct {
 	Balance       float64    `json:"balance"`
 	Concurrency   int        `json:"concurrency"`
 	Status        string     `json:"status"`
-	AllowedGroups []int64    `json:"allowed_groups"`
 	LastActiveAt  *time.Time `json:"last_active_at,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -29,11 +26,10 @@ type User struct {
 	BalanceNotifyExtraEmails   []NotifyEmailEntry `json:"balance_notify_extra_emails"`
 	TotalRecharged             float64            `json:"total_recharged"`
 
-	// RPMLimit 用户级每分钟请求数上限（0 = 不限制），仅在所用分组未设置 rpm_limit 时作为兜底生效。
+	// RPMLimit 用户级每分钟请求数上限（0 = 不限制）。
 	RPMLimit int `json:"rpm_limit"`
 
-	APIKeys       []APIKey           `json:"api_keys,omitempty"`
-	Subscriptions []UserSubscription `json:"subscriptions,omitempty"`
+	APIKeys []APIKey `json:"api_keys,omitempty"`
 }
 
 // AdminUser 是管理员接口使用的 user DTO（包含敏感/内部字段）。
@@ -43,9 +39,6 @@ type AdminUser struct {
 
 	Notes      string     `json:"notes"`
 	LastUsedAt *time.Time `json:"last_used_at"`
-	// GroupRates 用户专属分组倍率配置
-	// map[groupID]rateMultiplier
-	GroupRates map[int64]float64 `json:"group_rates,omitempty"`
 }
 
 type APIKey struct {
@@ -53,7 +46,6 @@ type APIKey struct {
 	UserID      int64      `json:"user_id"`
 	Key         string     `json:"key"`
 	Name        string     `json:"name"`
-	GroupID     *int64     `json:"group_id"`
 	Status      string     `json:"status"`
 	IPWhitelist []string   `json:"ip_whitelist"`
 	IPBlacklist []string   `json:"ip_blacklist"`
@@ -78,78 +70,7 @@ type APIKey struct {
 	Reset1dAt     *time.Time `json:"reset_1d_at,omitempty"`
 	Reset7dAt     *time.Time `json:"reset_7d_at,omitempty"`
 
-	User  *User  `json:"user,omitempty"`
-	Group *Group `json:"group,omitempty"`
-}
-
-type Group struct {
-	ID             int64   `json:"id"`
-	Name           string  `json:"name"`
-	Description    string  `json:"description"`
-	Platform       string  `json:"platform"`
-	RateMultiplier float64 `json:"rate_multiplier"`
-	IsExclusive    bool    `json:"is_exclusive"`
-	Status         string  `json:"status"`
-
-	SubscriptionType string   `json:"subscription_type"`
-	DailyLimitUSD    *float64 `json:"daily_limit_usd"`
-	WeeklyLimitUSD   *float64 `json:"weekly_limit_usd"`
-	MonthlyLimitUSD  *float64 `json:"monthly_limit_usd"`
-
-	// 图片生成计费配置（仅 antigravity 平台使用）
-	AllowImageGeneration bool     `json:"allow_image_generation"`
-	ImageRateIndependent bool     `json:"image_rate_independent"`
-	ImageRateMultiplier  float64  `json:"image_rate_multiplier"`
-	ImagePrice1K         *float64 `json:"image_price_1k"`
-	ImagePrice2K         *float64 `json:"image_price_2k"`
-	ImagePrice4K         *float64 `json:"image_price_4k"`
-
-	// Claude Code 客户端限制
-	ClaudeCodeOnly  bool   `json:"claude_code_only"`
-	FallbackGroupID *int64 `json:"fallback_group_id"`
-	// 无效请求兜底分组
-	FallbackGroupIDOnInvalidRequest *int64 `json:"fallback_group_id_on_invalid_request"`
-
-	// OpenAI Messages 调度开关（用户侧需要此字段判断是否展示 Claude Code 教程）
-	AllowMessagesDispatch bool `json:"allow_messages_dispatch"`
-
-	// 账号过滤控制（仅 OpenAI/Antigravity 平台有效）
-	RequireOAuthOnly  bool `json:"require_oauth_only"`
-	RequirePrivacySet bool `json:"require_privacy_set"`
-
-	// RPMLimit 分组级每分钟请求数上限（0 = 不限制），设置后覆盖用户级 rpm_limit。
-	RPMLimit int `json:"rpm_limit"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// AdminGroup 是管理员接口使用的 group DTO（包含敏感/内部字段）。
-// 注意：普通用户接口不得返回 model_routing/account_count/account_groups 等内部信息。
-type AdminGroup struct {
-	Group
-
-	// 模型路由配置（仅 anthropic 平台使用）
-	ModelRouting        map[string][]int64 `json:"model_routing"`
-	ModelRoutingEnabled bool               `json:"model_routing_enabled"`
-
-	// MCP XML 协议注入（仅 antigravity 平台使用）
-	MCPXMLInject bool `json:"mcp_xml_inject"`
-
-	// OpenAI Messages 调度配置（仅 openai 平台使用）
-	DefaultMappedModel          string                                   `json:"default_mapped_model"`
-	MessagesDispatchModelConfig domain.OpenAIMessagesDispatchModelConfig `json:"messages_dispatch_model_config"`
-	ModelsListConfig            domain.GroupModelsListConfig             `json:"models_list_config"`
-
-	// 支持的模型系列（仅 antigravity 平台使用）
-	SupportedModelScopes    []string       `json:"supported_model_scopes"`
-	AccountGroups           []AccountGroup `json:"account_groups,omitempty"`
-	AccountCount            int64          `json:"account_count,omitempty"`
-	ActiveAccountCount      int64          `json:"active_account_count,omitempty"`
-	RateLimitedAccountCount int64          `json:"rate_limited_account_count,omitempty"`
-
-	// 分组排序
-	SortOrder int `json:"sort_order"`
+	User *User `json:"user,omitempty"`
 }
 
 type Account struct {
@@ -253,21 +174,7 @@ type Account struct {
 	QuotaNotifyTotalEnabled    *bool    `json:"quota_notify_total_enabled,omitempty"`
 	QuotaNotifyTotalThreshold  *float64 `json:"quota_notify_total_threshold,omitempty"`
 
-	Proxy         *Proxy         `json:"proxy,omitempty"`
-	AccountGroups []AccountGroup `json:"account_groups,omitempty"`
-
-	GroupIDs []int64  `json:"group_ids,omitempty"`
-	Groups   []*Group `json:"groups,omitempty"`
-}
-
-type AccountGroup struct {
-	AccountID int64     `json:"account_id"`
-	GroupID   int64     `json:"group_id"`
-	Priority  int       `json:"priority"`
-	CreatedAt time.Time `json:"created_at"`
-
-	Account *Account `json:"account,omitempty"`
-	Group   *Group   `json:"group,omitempty"`
+	Proxy *Proxy `json:"proxy,omitempty"`
 }
 
 type Proxy struct {
@@ -351,15 +258,13 @@ type RedeemCode struct {
 	CreatedAt time.Time  `json:"created_at"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 
-	GroupID      *int64 `json:"group_id"`
 	ValidityDays int    `json:"validity_days"`
 
 	// Notes is only populated for admin_balance/admin_concurrency types
 	// so users can see why they were charged or credited
 	Notes *string `json:"notes,omitempty"`
 
-	User  *User  `json:"user,omitempty"`
-	Group *Group `json:"group,omitempty"`
+	User *User `json:"user,omitempty"`
 }
 
 // AdminRedeemCode 是管理员接口使用的 redeem code DTO（包含 notes 等字段）。
@@ -412,7 +317,6 @@ type BatchUpdateRedeemCodeFields struct {
 	Status    *string            `json:"status,omitempty"`
 	ExpiresAt NullableTimeField  `json:"expires_at,omitempty"`
 	Notes     *string            `json:"notes,omitempty"`
-	GroupID   NullableInt64Field `json:"group_id,omitempty"`
 
 	Type  *string  `json:"type,omitempty"`
 	Value *float64 `json:"value,omitempty"`
@@ -440,9 +344,6 @@ type UsageLog struct {
 	InboundEndpoint *string `json:"inbound_endpoint,omitempty"`
 	// UpstreamEndpoint is the normalized upstream endpoint path, e.g. /v1/responses.
 	UpstreamEndpoint *string `json:"upstream_endpoint,omitempty"`
-
-	GroupID        *int64 `json:"group_id"`
-	SubscriptionID *int64 `json:"subscription_id"`
 
 	InputTokens         int `json:"input_tokens"`
 	OutputTokens        int `json:"output_tokens"`
@@ -489,10 +390,8 @@ type UsageLog struct {
 
 	CreatedAt time.Time `json:"created_at"`
 
-	User         *User             `json:"user,omitempty"`
-	APIKey       *APIKey           `json:"api_key,omitempty"`
-	Group        *Group            `json:"group,omitempty"`
-	Subscription *UserSubscription `json:"subscription,omitempty"`
+	User   *User   `json:"user,omitempty"`
+	APIKey *APIKey `json:"api_key,omitempty"`
 }
 
 // AdminUsageLog 是管理员接口使用的 usage log DTO（包含管理员字段）。
@@ -528,7 +427,6 @@ type UsageCleanupFilters struct {
 	UserID      *int64    `json:"user_id,omitempty"`
 	APIKeyID    *int64    `json:"api_key_id,omitempty"`
 	AccountID   *int64    `json:"account_id,omitempty"`
-	GroupID     *int64    `json:"group_id,omitempty"`
 	Model       *string   `json:"model,omitempty"`
 	RequestType *string   `json:"request_type,omitempty"`
 	Stream      *bool     `json:"stream,omitempty"`
@@ -584,8 +482,7 @@ type UserSubscription struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	User  *User  `json:"user,omitempty"`
-	Group *Group `json:"group,omitempty"`
+	User *User `json:"user,omitempty"`
 }
 
 // AdminUserSubscription 是管理员接口使用的订阅 DTO（包含分配信息/备注等字段）。

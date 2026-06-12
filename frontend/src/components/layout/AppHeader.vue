@@ -21,7 +21,7 @@
         </div>
       </div>
 
-      <!-- Right: Docs + Language + Subscriptions + Balance + User Dropdown -->
+      <!-- Right: Docs + Language + Balance + User Dropdown -->
       <div class="flex items-center gap-3">
         <!-- Docs Link -->
         <a
@@ -37,9 +37,6 @@
 
         <!-- Language Switcher -->
         <LocaleSwitcher />
-
-        <!-- Subscription Progress (for users with active subscriptions) -->
-        <SubscriptionProgressMini v-if="user" />
 
         <!-- Balance Display -->
         <div
@@ -216,7 +213,6 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import { useAdminSettingsStore } from '@/stores/adminSettings'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
-import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import Icon from '@/components/icons/Icon.vue'
 
 const router = useRouter()

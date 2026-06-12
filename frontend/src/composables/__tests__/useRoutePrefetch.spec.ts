@@ -26,14 +26,9 @@ const createMockRouter = (): Router => {
   const routes: Partial<RouteRecordNormalized>[] = [
     { path: '/admin/dashboard', components: { default: mockImportFn } },
     { path: '/admin/accounts', components: { default: mockImportFn } },
-    { path: '/admin/groups', components: { default: mockImportFn } },
-    { path: '/admin/groups', components: { default: mockImportFn } },
-    { path: '/admin/subscriptions', components: { default: mockImportFn } },
-    { path: '/admin/redeem', components: { default: mockImportFn } },
     { path: '/dashboard', components: { default: mockImportFn } },
     { path: '/keys', components: { default: mockImportFn } },
     { path: '/usage', components: { default: mockImportFn } },
-    { path: '/redeem', components: { default: mockImportFn } },
     { path: '/profile', components: { default: mockImportFn } }
   ]
 
@@ -73,7 +68,7 @@ describe('useRoutePrefetch', () => {
     it('应该正确识别管理员路由', () => {
       const { _isAdminRoute } = useRoutePrefetch(mockRouter)
       expect(_isAdminRoute('/admin/dashboard')).toBe(true)
-      expect(_isAdminRoute('/admin/groups')).toBe(true)
+      expect(_isAdminRoute('/admin/accounts')).toBe(true)
       expect(_isAdminRoute('/admin/accounts')).toBe(true)
     })
 
@@ -161,13 +156,13 @@ describe('useRoutePrefetch', () => {
       triggerPrefetch(createMockRoute('/admin/dashboard'))
 
       // 立即切换到另一个路由
-      triggerPrefetch(createMockRoute('/admin/groups'))
+      triggerPrefetch(createMockRoute('/admin/accounts'))
 
       // 等待执行
       await new Promise((resolve) => setTimeout(resolve, 100))
 
       // 只有最后一个路由应该被预加载
-      expect(prefetchedRoutes.value.has('/admin/groups')).toBe(true)
+      expect(prefetchedRoutes.value.has('/admin/accounts')).toBe(true)
     })
   })
 

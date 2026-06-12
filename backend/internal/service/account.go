@@ -54,7 +54,8 @@ type Account struct {
 	SessionWindowEnd    *time.Time
 	SessionWindowStatus string
 
-	Proxy         *Proxy
+	Proxy *Proxy
+
 	AccountGroups []AccountGroup
 	GroupIDs      []int64
 	Groups        []*Group

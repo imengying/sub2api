@@ -455,10 +455,9 @@ func ProvideOpsService(
 	return svc
 }
 
-// ProvideSettingService wires SettingService with group reader and proxy repo.
-func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupRepository, proxyRepo ProxyRepository, cfg *config.Config) *SettingService {
+// ProvideSettingService wires SettingService with proxy repo.
+func ProvideSettingService(settingRepo SettingRepository, proxyRepo ProxyRepository, cfg *config.Config) *SettingService {
 	svc := NewSettingService(settingRepo, cfg)
-	svc.SetDefaultSubscriptionGroupReader(groupRepo)
 	svc.SetProxyRepository(proxyRepo)
 	if err := svc.LoadAPIKeyACLTrustForwardedIPSetting(context.Background()); err != nil {
 		logger.LegacyPrintf("service.setting", "Warning: load api key acl forwarded ip setting failed: %v", err)
@@ -474,25 +473,21 @@ func ProvideBillingCacheService(
 	subRepo UserSubscriptionRepository,
 	apiKeyRepo APIKeyRepository,
 	rpmCache UserRPMCache,
-	rateRepo UserGroupRateRepository,
 	cfg *config.Config,
 	userPlatformQuotaRepo UserPlatformQuotaRepository,
 ) *BillingCacheService {
-	return NewBillingCacheService(cache, userRepo, subRepo, apiKeyRepo, rpmCache, rateRepo, cfg, userPlatformQuotaRepo)
+	return NewBillingCacheService(cache, userRepo, subRepo, apiKeyRepo, rpmCache, cfg, userPlatformQuotaRepo)
 }
 
 // ProvideAPIKeyService wires APIKeyService and connects rate-limit cache invalidation.
 func ProvideAPIKeyService(
 	apiKeyRepo APIKeyRepository,
 	userRepo UserRepository,
-	groupRepo GroupRepository,
-	userSubRepo UserSubscriptionRepository,
-	userGroupRateRepo UserGroupRateRepository,
 	cache APIKeyCache,
 	cfg *config.Config,
 	billingCacheService *BillingCacheService,
 ) *APIKeyService {
-	svc := NewAPIKeyService(apiKeyRepo, userRepo, groupRepo, userSubRepo, userGroupRateRepo, cache, cfg)
+	svc := NewAPIKeyService(apiKeyRepo, userRepo, cache, cfg)
 	svc.SetRateLimitCacheInvalidator(billingCacheService)
 	return svc
 }
@@ -504,7 +499,6 @@ var ProviderSet = wire.NewSet(
 	NewUserService,
 	ProvideAPIKeyService,
 	ProvideAPIKeyAuthCacheInvalidator,
-	NewGroupService,
 	NewAccountService,
 	NewProxyService,
 	NewUsageService,
@@ -577,7 +571,6 @@ var ProviderSet = wire.NewSet(
 	ProvideIdempotencyCleanupService,
 	ProvideScheduledTestService,
 	ProvideScheduledTestRunnerService,
-	NewGroupCapacityService,
 	NewChannelService,
 	NewModelPricingResolver,
 	NewContentModerationService,

@@ -112,31 +112,3 @@ func (s *UserSubscription) MonthlyResetTime() *time.Time {
 	t := s.MonthlyWindowStart.Add(30 * 24 * time.Hour)
 	return &t
 }
-
-func (s *UserSubscription) CheckDailyLimit(group *Group, additionalCost float64) bool {
-	if !group.HasDailyLimit() {
-		return true
-	}
-	return s.DailyUsageUSD+additionalCost <= *group.DailyLimitUSD
-}
-
-func (s *UserSubscription) CheckWeeklyLimit(group *Group, additionalCost float64) bool {
-	if !group.HasWeeklyLimit() {
-		return true
-	}
-	return s.WeeklyUsageUSD+additionalCost <= *group.WeeklyLimitUSD
-}
-
-func (s *UserSubscription) CheckMonthlyLimit(group *Group, additionalCost float64) bool {
-	if !group.HasMonthlyLimit() {
-		return true
-	}
-	return s.MonthlyUsageUSD+additionalCost <= *group.MonthlyLimitUSD
-}
-
-func (s *UserSubscription) CheckAllLimits(group *Group, additionalCost float64) (daily, weekly, monthly bool) {
-	daily = s.CheckDailyLimit(group, additionalCost)
-	weekly = s.CheckWeeklyLimit(group, additionalCost)
-	monthly = s.CheckMonthlyLimit(group, additionalCost)
-	return
-}

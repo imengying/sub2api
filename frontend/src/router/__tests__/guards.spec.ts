@@ -83,11 +83,8 @@ function simulateGuard(
       return authState.isAdmin ? '/admin/dashboard' : '/dashboard'
     }
     if (authState.backendModeEnabled && !authState.isAuthenticated) {
-      const allowed = ['/login', '/key-usage', '/setup', '/payment/result']
-      const callbackPaths = [
-        '/auth/callback',
-        '/auth/wechat/payment/callback',
-      ]
+      const allowed = ['/login', '/key-usage', '/setup']
+      const callbackPaths = ['/auth/callback']
       const pendingAuthPaths = ['/register', '/email-verify']
       const isAllowed =
         allowed.some((path) => toPath === path || toPath.startsWith(path)) ||
@@ -115,11 +112,8 @@ function simulateGuard(
     if (authState.isAuthenticated && authState.isAdmin) {
       return null
     }
-    const allowed = ['/login', '/key-usage', '/setup', '/payment/result']
-    const callbackPaths = [
-      '/auth/callback',
-      '/auth/wechat/payment/callback',
-    ]
+    const allowed = ['/login', '/key-usage', '/setup']
+    const callbackPaths = ['/auth/callback']
     const pendingAuthPaths = ['/register', '/email-verify']
     const isAllowed =
       allowed.some((path) => toPath === path || toPath.startsWith(path)) ||
@@ -366,7 +360,7 @@ describe('路由守卫逻辑', () => {
       expect(redirect).toBe('/login')
     })
 
-    it('unauthenticated: WeChat payment callback route is allowed', () => {
+    it('unauthenticated: WeChat payment callback route is blocked', () => {
       const authState: MockAuthState = {
         isAuthenticated: false,
         isAdmin: false,
@@ -374,10 +368,10 @@ describe('路由守卫逻辑', () => {
         hasPendingAuthSession: false,
       }
       const redirect = simulateGuard('/auth/wechat/payment/callback', { requiresAuth: false }, authState)
-      expect(redirect).toBeNull()
+      expect(redirect).toBe('/login')
     })
 
-    it('unauthenticated: /payment/result is allowed', () => {
+    it('unauthenticated: /payment/result is blocked', () => {
       const authState: MockAuthState = {
         isAuthenticated: false,
         isAdmin: false,
@@ -385,7 +379,7 @@ describe('路由守卫逻辑', () => {
         hasPendingAuthSession: false,
       }
       const redirect = simulateGuard('/payment/result', { requiresAuth: false }, authState)
-      expect(redirect).toBeNull()
+      expect(redirect).toBe('/login')
     })
 
     it('unauthenticated: /register is allowed when a pending auth session exists', () => {

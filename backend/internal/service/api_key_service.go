@@ -22,7 +22,6 @@ import (
 
 var (
 	ErrAPIKeyNotFound     = infraerrors.NotFound("API_KEY_NOT_FOUND", "api key not found")
-	ErrGroupNotAllowed    = infraerrors.Forbidden("GROUP_NOT_ALLOWED", "user is not allowed to bind this group")
 	ErrAPIKeyExists       = infraerrors.Conflict("API_KEY_EXISTS", "api key already exists")
 	ErrAPIKeyTooShort     = infraerrors.BadRequest("API_KEY_TOO_SHORT", "api key must be at least 16 characters")
 	ErrAPIKeyInvalidChars = infraerrors.BadRequest("API_KEY_INVALID_CHARS", "api key can only contain letters, numbers, underscores, and hyphens")
@@ -60,17 +59,16 @@ type APIKeyRepository interface {
 	DeleteWithAudit(ctx context.Context, id int64) error
 
 	ListByUserID(ctx context.Context, userID int64, params pagination.PaginationParams, filters APIKeyListFilters) ([]APIKey, *pagination.PaginationResult, error)
+	ListByGroupID(ctx context.Context, groupID int64, params pagination.PaginationParams) ([]APIKey, *pagination.PaginationResult, error)
 	VerifyOwnership(ctx context.Context, userID int64, apiKeyIDs []int64) ([]int64, error)
 	CountByUserID(ctx context.Context, userID int64) (int64, error)
-	ExistsByKey(ctx context.Context, key string) (bool, error)
-	ListByGroupID(ctx context.Context, groupID int64, params pagination.PaginationParams) ([]APIKey, *pagination.PaginationResult, error)
-	SearchAPIKeys(ctx context.Context, userID int64, keyword string, limit int) ([]APIKey, error)
-	ClearGroupIDByGroupID(ctx context.Context, groupID int64) (int64, error)
-	// UpdateGroupIDByUserAndGroup 将用户下绑定 oldGroupID 的所有 Key 迁移到 newGroupID
-	UpdateGroupIDByUserAndGroup(ctx context.Context, userID, oldGroupID, newGroupID int64) (int64, error)
 	CountByGroupID(ctx context.Context, groupID int64) (int64, error)
+	ExistsByKey(ctx context.Context, key string) (bool, error)
+	SearchAPIKeys(ctx context.Context, userID int64, keyword string, limit int) ([]APIKey, error)
 	ListKeysByUserID(ctx context.Context, userID int64) ([]string, error)
 	ListKeysByGroupID(ctx context.Context, groupID int64) ([]string, error)
+	ClearGroupIDByGroupID(ctx context.Context, groupID int64) (int64, error)
+	UpdateGroupIDByUserAndGroup(ctx context.Context, userID, oldGroupID, newGroupID int64) (int64, error)
 
 	// Quota methods
 	IncrementQuotaUsed(ctx context.Context, id int64, amount float64) (float64, error)
@@ -153,7 +151,6 @@ type APIKeyAuthCacheInvalidator interface {
 // CreateAPIKeyRequest 创建API Key请求
 type CreateAPIKeyRequest struct {
 	Name        string   `json:"name"`
-	GroupID     *int64   `json:"group_id"`
 	CustomKey   *string  `json:"custom_key"`   // 可选的自定义key
 	IPWhitelist []string `json:"ip_whitelist"` // IP 白名单
 	IPBlacklist []string `json:"ip_blacklist"` // IP 黑名单
@@ -171,7 +168,6 @@ type CreateAPIKeyRequest struct {
 // UpdateAPIKeyRequest 更新API Key请求
 type UpdateAPIKeyRequest struct {
 	Name        *string  `json:"name"`
-	GroupID     *int64   `json:"group_id"`
 	Status      *string  `json:"status"`
 	IPWhitelist []string `json:"ip_whitelist"` // IP 白名单（空数组清空）
 	IPBlacklist []string `json:"ip_blacklist"` // IP 黑名单（空数组清空）
@@ -198,9 +194,6 @@ type RateLimitCacheInvalidator interface {
 type APIKeyService struct {
 	apiKeyRepo            APIKeyRepository
 	userRepo              UserRepository
-	groupRepo             GroupRepository
-	userSubRepo           UserSubscriptionRepository
-	userGroupRateRepo     UserGroupRateRepository
 	cache                 APIKeyCache
 	rateLimitCacheInvalid RateLimitCacheInvalidator // optional: invalidate Redis rate limit cache
 	cfg                   *config.Config
@@ -215,20 +208,14 @@ type APIKeyService struct {
 func NewAPIKeyService(
 	apiKeyRepo APIKeyRepository,
 	userRepo UserRepository,
-	groupRepo GroupRepository,
-	userSubRepo UserSubscriptionRepository,
-	userGroupRateRepo UserGroupRateRepository,
 	cache APIKeyCache,
 	cfg *config.Config,
 ) *APIKeyService {
 	svc := &APIKeyService{
-		apiKeyRepo:        apiKeyRepo,
-		userRepo:          userRepo,
-		groupRepo:         groupRepo,
-		userSubRepo:       userSubRepo,
-		userGroupRateRepo: userGroupRateRepo,
-		cache:             cache,
-		cfg:               cfg,
+		apiKeyRepo: apiKeyRepo,
+		userRepo:   userRepo,
+		cache:      cache,
+		cfg:        cfg,
 	}
 	svc.initAuthCache(cfg)
 	return svc
@@ -315,24 +302,10 @@ func (s *APIKeyService) incrementAPIKeyErrorCount(ctx context.Context, userID in
 	_ = s.cache.IncrementCreateAttemptCount(ctx, userID)
 }
 
-// canUserBindGroup 检查用户是否可以绑定指定分组
-// 对于订阅类型分组：检查用户是否有有效订阅
-// 对于标准类型分组：使用原有的 AllowedGroups 和 IsExclusive 逻辑
-func (s *APIKeyService) canUserBindGroup(ctx context.Context, user *User, group *Group) bool {
-	// 订阅类型分组：需要有效订阅
-	if group.IsSubscriptionType() {
-		_, err := s.userSubRepo.GetActiveByUserIDAndGroupID(ctx, user.ID, group.ID)
-		return err == nil // 有有效订阅则允许
-	}
-	// 标准类型分组：使用原有逻辑
-	return user.CanBindGroup(group.ID, group.IsExclusive)
-}
-
 // Create 创建API Key
 func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIKeyRequest) (*APIKey, error) {
 	// 验证用户存在
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
+	if _, err := s.userRepo.GetByID(ctx, userID); err != nil {
 		return nil, fmt.Errorf("get user: %w", err)
 	}
 
@@ -347,19 +320,6 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 	if len(req.IPBlacklist) > 0 {
 		if invalid := ip.ValidateIPPatterns(req.IPBlacklist); len(invalid) > 0 {
 			return nil, fmt.Errorf("%w: %v", ErrInvalidIPPattern, invalid)
-		}
-	}
-
-	// 验证分组权限（如果指定了分组）
-	if req.GroupID != nil {
-		group, err := s.groupRepo.GetByID(ctx, *req.GroupID)
-		if err != nil {
-			return nil, fmt.Errorf("get group: %w", err)
-		}
-
-		// 检查用户是否可以绑定该分组
-		if !s.canUserBindGroup(ctx, user, group) {
-			return nil, ErrGroupNotAllowed
 		}
 	}
 
@@ -403,7 +363,6 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		UserID:      userID,
 		Key:         key,
 		Name:        html.EscapeString(req.Name),
-		GroupID:     req.GroupID,
 		Status:      StatusActive,
 		IPWhitelist: req.IPWhitelist,
 		IPBlacklist: req.IPBlacklist,
@@ -542,25 +501,6 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 	// 更新字段
 	if req.Name != nil {
 		apiKey.Name = html.EscapeString(*req.Name)
-	}
-
-	if req.GroupID != nil {
-		// 验证分组权限
-		user, err := s.userRepo.GetByID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("get user: %w", err)
-		}
-
-		group, err := s.groupRepo.GetByID(ctx, *req.GroupID)
-		if err != nil {
-			return nil, fmt.Errorf("get group: %w", err)
-		}
-
-		if !s.canUserBindGroup(ctx, user, group) {
-			return nil, ErrGroupNotAllowed
-		}
-
-		apiKey.GroupID = req.GroupID
 	}
 
 	if req.Status != nil {
@@ -739,75 +679,12 @@ func (s *APIKeyService) IncrementUsage(ctx context.Context, keyID int64) error {
 	return nil
 }
 
-// GetAvailableGroups 获取用户有权限绑定的分组列表
-// 返回用户可以选择的分组：
-// - 标准类型分组：公开的（非专属）或用户被明确允许的
-// - 订阅类型分组：用户有有效订阅的
-func (s *APIKeyService) GetAvailableGroups(ctx context.Context, userID int64) ([]Group, error) {
-	// 获取用户信息
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get user: %w", err)
-	}
-
-	// 获取所有活跃分组
-	allGroups, err := s.groupRepo.ListActive(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list active groups: %w", err)
-	}
-
-	// 获取用户的所有有效订阅
-	activeSubscriptions, err := s.userSubRepo.ListActiveByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list active subscriptions: %w", err)
-	}
-
-	// 构建订阅分组 ID 集合
-	subscribedGroupIDs := make(map[int64]bool)
-	for _, sub := range activeSubscriptions {
-		subscribedGroupIDs[sub.GroupID] = true
-	}
-
-	// 过滤出用户有权限的分组
-	availableGroups := make([]Group, 0)
-	for _, group := range allGroups {
-		if s.canUserBindGroupInternal(user, &group, subscribedGroupIDs) {
-			availableGroups = append(availableGroups, group)
-		}
-	}
-
-	return availableGroups, nil
-}
-
-// canUserBindGroupInternal 内部方法，检查用户是否可以绑定分组（使用预加载的订阅数据）
-func (s *APIKeyService) canUserBindGroupInternal(user *User, group *Group, subscribedGroupIDs map[int64]bool) bool {
-	// 订阅类型分组：需要有效订阅
-	if group.IsSubscriptionType() {
-		return subscribedGroupIDs[group.ID]
-	}
-	// 标准类型分组：使用原有逻辑
-	return user.CanBindGroup(group.ID, group.IsExclusive)
-}
-
 func (s *APIKeyService) SearchAPIKeys(ctx context.Context, userID int64, keyword string, limit int) ([]APIKey, error) {
 	keys, err := s.apiKeyRepo.SearchAPIKeys(ctx, userID, keyword, limit)
 	if err != nil {
 		return nil, fmt.Errorf("search api keys: %w", err)
 	}
 	return keys, nil
-}
-
-// GetUserGroupRates 获取用户的专属分组倍率配置
-// 返回 map[groupID]rateMultiplier
-func (s *APIKeyService) GetUserGroupRates(ctx context.Context, userID int64) (map[int64]float64, error) {
-	if s.userGroupRateRepo == nil {
-		return nil, nil
-	}
-	rates, err := s.userGroupRateRepo.GetByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get user group rates: %w", err)
-	}
-	return rates, nil
 }
 
 // CheckAPIKeyQuotaAndExpiry checks if the API key is valid for use (not expired, quota not exhausted)
