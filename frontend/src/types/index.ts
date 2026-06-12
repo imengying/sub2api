@@ -116,47 +116,10 @@ export interface LoginRequest {
   turnstile_token?: string
 }
 
-export interface RegisterRequest {
-  email: string
-  password: string
-  verify_code?: string
-  turnstile_token?: string
-  promo_code?: string
-  invitation_code?: string
-  aff_code?: string
-}
-
-export interface AffiliateInvitee {
-  user_id: number
-  email: string
-  username: string
-  created_at?: string
-  total_rebate: number
-}
-
-export interface UserAffiliateDetail {
-  user_id: number
-  aff_code: string
-  inviter_id?: number | null
-  aff_count: number
-  aff_quota: number
-  aff_frozen_quota: number
-  aff_history_quota: number
-  /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
-  effective_rebate_rate_percent: number
-  invitees: AffiliateInvitee[]
-}
-
-export interface AffiliateTransferResponse {
-  transferred_quota: number
-  balance: number
-}
-
 export interface SendVerifyCodeRequest {
   email: string
   turnstile_token?: string
   pending_auth_token?: string
-  pending_oauth_token?: string
 }
 
 export interface SendVerifyCodeResponse {
@@ -209,7 +172,6 @@ export interface PublicSettings {
   doc_url: string
   home_content: string
   hide_ccs_import_button: boolean
-  payment_enabled: boolean
   risk_control_enabled: boolean
   table_default_page_size: number
   table_page_size_options: number[]
@@ -234,7 +196,6 @@ export interface PublicSettings {
   channel_monitor_default_interval_seconds: number
   available_channels_enabled: boolean
   service_quota_enabled: boolean
-  affiliate_enabled: boolean
   allow_user_view_error_requests?: boolean
 }
 
@@ -243,11 +204,11 @@ export interface AuthResponse {
   refresh_token?: string  // New: Refresh Token for token renewal
   expires_in?: number     // New: Access Token expiry time in seconds
   token_type: string
-  user: User & { run_mode?: 'standard' | 'simple' }
+  user: User & { run_mode?: 'standard' }
 }
 
 export interface CurrentUserResponse extends User {
-  run_mode?: 'standard' | 'simple'
+  run_mode?: 'standard'
 }
 
 // ==================== Subscription Types ====================
@@ -1923,14 +1884,3 @@ export interface UpdateScheduledTestPlanRequest {
   max_results?: number
   auto_recover?: boolean
 }
-
-// Payment types
-export type { SubscriptionPlan, PaymentOrder, CheckoutInfoResponse } from './payment'
-
-export type {
-  PlatformQuotaItem,
-  PlatformQuotaUpdateItem,
-  PlatformQuotaPlatform,
-  PlatformQuotaWindow,
-  PlatformQuotasResponse,
-} from '@/api/admin/users'

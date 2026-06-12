@@ -16,7 +16,7 @@ const PENDING_AUTH_SESSION_KEY = 'pending_auth_session'
 const AUTO_REFRESH_INTERVAL = 60 * 1000 // 60 seconds for user data refresh
 const TOKEN_REFRESH_BUFFER = 120 * 1000 // 120 seconds before expiry to refresh token
 
-type PendingAuthTokenField = 'pending_auth_token' | 'pending_oauth_token'
+type PendingAuthTokenField = 'pending_auth_token'
 
 interface PendingAuthSessionSummary {
   token: string
@@ -28,8 +28,8 @@ interface PendingAuthSessionSummary {
   suggested_avatar_url?: string
 }
 
-function normalizePendingAuthTokenField(value: unknown): PendingAuthTokenField {
-  return value === 'pending_oauth_token' ? 'pending_oauth_token' : 'pending_auth_token'
+function normalizePendingAuthTokenField(_value: unknown): PendingAuthTokenField {
+  return 'pending_auth_token'
 }
 
 function getPersistedPendingAuthSession(): PendingAuthSessionSummary | null {
@@ -75,7 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const refreshTokenValue = ref<string | null>(null)
   const tokenExpiresAt = ref<number | null>(null) // 过期时间戳（毫秒）
-  const runMode = ref<'standard' | 'simple'>('standard')
+  const runMode = ref<'standard'>('standard')
   const pendingAuthSession = ref<PendingAuthSessionSummary | null>(null)
   let refreshIntervalId: ReturnType<typeof setInterval> | null = null
   let tokenRefreshTimeoutId: ReturnType<typeof setTimeout> | null = null
@@ -90,7 +90,6 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.role === 'admin'
   })
 
-  const isSimpleMode = computed(() => runMode.value === 'simple')
   const hasPendingAuthSession = computed(() => pendingAuthSession.value !== null)
 
   // ==================== Actions ====================
@@ -290,7 +289,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Extract run_mode if present
-    if (response.user.run_mode) {
+    if (response.user.run_mode === 'standard') {
       runMode.value = response.user.run_mode
     }
     const { run_mode: _run_mode, ...userData } = response.user
@@ -417,7 +416,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authAPI.getCurrentUser()
-      if (response.data.run_mode) {
+      if (response.data.run_mode === 'standard') {
         runMode.value = response.data.run_mode
       }
       const { run_mode: _run_mode, ...userData } = response.data
@@ -476,7 +475,6 @@ export const useAuthStore = defineStore('auth', () => {
     // Computed
     isAuthenticated,
     isAdmin,
-    isSimpleMode,
     hasPendingAuthSession,
 
     // Actions

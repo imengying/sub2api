@@ -163,14 +163,14 @@ describe('API Client', () => {
           },
         },
         config: {
-          url: '/admin/users',
+          url: '/admin/groups',
           headers: { Authorization: 'Bearer admin-token' },
         },
         code: 'ERR_BAD_REQUEST',
       })
       apiClient.defaults.adapter = adapter
 
-      await expect(apiClient.get('/admin/users')).rejects.toEqual(
+      await expect(apiClient.get('/admin/groups')).rejects.toEqual(
         expect.objectContaining({
           status: 423,
           code: 'ADMIN_COMPLIANCE_ACK_REQUIRED',

@@ -335,12 +335,7 @@ func (s *OpsCleanupService) tryAcquireLeaderLock(ctx context.Context) (func(), b
 	if s == nil {
 		return nil, false
 	}
-	// In simple run mode, assume single instance.
-	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
-		return nil, true
-	}
-
-	key := opsCleanupLeaderLockKeyDefault
+    key := opsCleanupLeaderLockKeyDefault
 	ttl := opsCleanupLeaderLockTTLDefault
 
 	// Prefer Redis leader lock when available, but avoid stampeding the DB when Redis is flaky by

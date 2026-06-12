@@ -21,11 +21,8 @@
         </div>
       </div>
 
-      <!-- Right: Announcements + Docs + Language + Subscriptions + Balance + User Dropdown -->
+      <!-- Right: Docs + Language + Subscriptions + Balance + User Dropdown -->
       <div class="flex items-center gap-3">
-        <!-- Announcement Bell -->
-        <AnnouncementBell v-if="user" />
-
         <!-- Docs Link -->
         <a
           v-if="docUrl"
@@ -128,7 +125,7 @@
 
                 <a
                   v-if="authStore.isAdmin"
-                  href="https://github.com/Wei-Shaw/sub2api"
+                  href="https://github.com/imengying/sub2api"
                   target="_blank"
                   rel="noopener noreferrer"
                   @click="closeDropdown"
@@ -220,7 +217,6 @@ import { useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import { useAdminSettingsStore } from '@/stores/adminSettings'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
-import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import Icon from '@/components/icons/Icon.vue'
 
 const router = useRouter()
@@ -238,9 +234,9 @@ const contactInfo = computed(() => appStore.contactInfo)
 const docUrl = computed(() => appStore.docUrl)
 const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
 
-// 只在标准模式的管理员下显示新手引导按钮
+// Only admins can launch onboarding.
 const showOnboardingButton = computed(() => {
-  return !authStore.isSimpleMode && user.value?.role === 'admin'
+  return user.value?.role === 'admin'
 })
 
 const userInitials = computed(() => {

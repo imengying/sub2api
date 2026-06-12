@@ -80,20 +80,7 @@ export type AuthSourceDefaultsState = Record<
   AuthSourceType,
   AuthSourceDefaultsValue
 >;
-export type PaymentVisibleMethod = "alipay" | "wxpay";
-export type PaymentVisibleMethodSource =
-  | ""
-  | "official_alipay"
-  | "easypay_alipay"
-  | "official_wxpay"
-  | "easypay_wxpay";
 export type WeChatConnectMode = "open" | "mp" | "mobile";
-
-export interface PaymentVisibleMethodSourceOption {
-  value: PaymentVisibleMethodSource;
-  labelZh: string;
-  labelEn: string;
-}
 
 export interface WeChatConnectModeOption {
   value: WeChatConnectMode;
@@ -112,59 +99,6 @@ const AUTH_SOURCE_TYPES: AuthSourceType[] = [
 ];
 const AUTH_SOURCE_DEFAULT_BALANCE = 0;
 const AUTH_SOURCE_DEFAULT_CONCURRENCY = 5;
-const PAYMENT_VISIBLE_METHOD_SOURCE_OPTIONS: Record<
-  PaymentVisibleMethod,
-  PaymentVisibleMethodSourceOption[]
-> = {
-  alipay: [
-    { value: "", labelZh: "未配置", labelEn: "Not configured" },
-    {
-      value: "official_alipay",
-      labelZh: "支付宝官方",
-      labelEn: "Official Alipay",
-    },
-    {
-      value: "easypay_alipay",
-      labelZh: "易支付支付宝",
-      labelEn: "EasyPay Alipay",
-    },
-  ],
-  wxpay: [
-    { value: "", labelZh: "未配置", labelEn: "Not configured" },
-    {
-      value: "official_wxpay",
-      labelZh: "微信官方",
-      labelEn: "Official WeChat Pay",
-    },
-    {
-      value: "easypay_wxpay",
-      labelZh: "易支付微信",
-      labelEn: "EasyPay WeChat Pay",
-    },
-  ],
-};
-const PAYMENT_VISIBLE_METHOD_SOURCE_ALIASES: Record<
-  PaymentVisibleMethod,
-  Record<string, PaymentVisibleMethodSource>
-> = {
-  alipay: {
-    official_alipay: "official_alipay",
-    alipay: "official_alipay",
-    alipay_direct: "official_alipay",
-    official: "official_alipay",
-    easypay_alipay: "easypay_alipay",
-    easypay: "easypay_alipay",
-  },
-  wxpay: {
-    official_wxpay: "official_wxpay",
-    wxpay: "official_wxpay",
-    wxpay_direct: "official_wxpay",
-    wechat: "official_wxpay",
-    official: "official_wxpay",
-    easypay_wxpay: "easypay_wxpay",
-    easypay: "easypay_wxpay",
-  },
-};
 const WECHAT_CONNECT_MODE_OPTIONS: WeChatConnectModeOption[] = [
   { value: "open", labelZh: "PC 应用", labelEn: "PC App" },
   {
@@ -270,24 +204,6 @@ export function appendAuthSourceDefaultsToUpdateRequest(
   return payload;
 }
 
-export function getPaymentVisibleMethodSourceOptions(
-  method: PaymentVisibleMethod,
-): PaymentVisibleMethodSourceOption[] {
-  return PAYMENT_VISIBLE_METHOD_SOURCE_OPTIONS[method];
-}
-
-export function normalizePaymentVisibleMethodSource(
-  method: PaymentVisibleMethod,
-  source: unknown,
-): PaymentVisibleMethodSource {
-  if (typeof source !== "string") return "";
-
-  const normalized = source.trim().toLowerCase();
-  if (!normalized) return "";
-
-  return PAYMENT_VISIBLE_METHOD_SOURCE_ALIASES[method][normalized] ?? "";
-}
-
 export function getWeChatConnectModeOptions(): WeChatConnectModeOption[] {
   return WECHAT_CONNECT_MODE_OPTIONS;
 }
@@ -372,10 +288,6 @@ export interface SystemSettings {
   login_agreement_documents: LoginAgreementDocument[];
   // Default settings
   default_balance: number;
-  affiliate_rebate_rate: number;
-  affiliate_rebate_freeze_hours: number;
-  affiliate_rebate_duration_days: number;
-  affiliate_rebate_per_invitee_cap: number;
   default_concurrency: number;
   default_user_rpm_limit: number;
   default_subscriptions: DefaultSubscriptionSetting[];
@@ -563,33 +475,7 @@ export interface SystemSettings {
   openai_allow_claude_code_codex_plugin: boolean;
   web_search_emulation_enabled?: boolean;
 
-  // Payment configuration
-  payment_enabled: boolean;
   risk_control_enabled: boolean;
-  payment_min_amount: number;
-  payment_max_amount: number;
-  payment_daily_limit: number;
-  payment_order_timeout_minutes: number;
-  payment_max_pending_orders: number;
-  payment_enabled_types: string[];
-  payment_balance_disabled: boolean;
-  payment_balance_recharge_multiplier: number;
-  payment_recharge_fee_rate: number;
-  payment_load_balance_strategy: string;
-  payment_product_name_prefix: string;
-  payment_product_name_suffix: string;
-  payment_help_image_url: string;
-  payment_help_text: string;
-  payment_cancel_rate_limit_enabled: boolean;
-  payment_cancel_rate_limit_max: number;
-  payment_cancel_rate_limit_window: number;
-  payment_cancel_rate_limit_unit: string;
-  payment_cancel_rate_limit_window_mode: string;
-  payment_alipay_force_qrcode?: boolean;
-  payment_visible_method_alipay_source?: string;
-  payment_visible_method_wxpay_source?: string;
-  payment_visible_method_alipay_enabled?: boolean;
-  payment_visible_method_wxpay_enabled?: boolean;
   openai_advanced_scheduler_enabled?: boolean;
 
   // 余额、订阅到期与账号限额通知
@@ -606,9 +492,6 @@ export interface SystemSettings {
 
   // Available Channels feature switch
   available_channels_enabled: boolean;
-
-  // Affiliate (邀请返利) feature switch
-  affiliate_enabled: boolean;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
@@ -631,10 +514,6 @@ export interface UpdateSettingsRequest {
   login_agreement_updated_at?: string;
   login_agreement_documents?: LoginAgreementDocument[];
   default_balance?: number;
-  affiliate_rebate_rate?: number;
-  affiliate_rebate_freeze_hours?: number;
-  affiliate_rebate_duration_days?: number;
-  affiliate_rebate_per_invitee_cap?: number;
   default_concurrency?: number;
   default_user_rpm_limit?: number;
   default_subscriptions?: DefaultSubscriptionSetting[];
@@ -797,33 +676,7 @@ export interface UpdateSettingsRequest {
   antigravity_user_agent_version?: string;
   openai_codex_user_agent?: string;
   openai_allow_claude_code_codex_plugin?: boolean;
-  // Payment configuration
-  payment_enabled?: boolean;
   risk_control_enabled?: boolean;
-  payment_min_amount?: number;
-  payment_max_amount?: number;
-  payment_daily_limit?: number;
-  payment_order_timeout_minutes?: number;
-  payment_max_pending_orders?: number;
-  payment_enabled_types?: string[];
-  payment_balance_disabled?: boolean;
-  payment_balance_recharge_multiplier?: number;
-  payment_recharge_fee_rate?: number;
-  payment_load_balance_strategy?: string;
-  payment_product_name_prefix?: string;
-  payment_product_name_suffix?: string;
-  payment_help_image_url?: string;
-  payment_help_text?: string;
-  payment_cancel_rate_limit_enabled?: boolean;
-  payment_cancel_rate_limit_max?: number;
-  payment_cancel_rate_limit_window?: number;
-  payment_cancel_rate_limit_unit?: string;
-  payment_cancel_rate_limit_window_mode?: string;
-  payment_alipay_force_qrcode?: boolean;
-  payment_visible_method_alipay_source?: string;
-  payment_visible_method_wxpay_source?: string;
-  payment_visible_method_alipay_enabled?: boolean;
-  payment_visible_method_wxpay_enabled?: boolean;
   openai_advanced_scheduler_enabled?: boolean;
   // 余额、订阅到期与账号限额通知
   balance_low_notify_enabled?: boolean;
@@ -839,9 +692,6 @@ export interface UpdateSettingsRequest {
 
   // Available Channels feature switch
   available_channels_enabled?: boolean;
-
-  // Affiliate (邀请返利) feature switch
-  affiliate_enabled?: boolean;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
@@ -869,162 +719,6 @@ export async function updateSettings(
   const { data } = await apiClient.put<SystemSettings>(
     "/admin/settings",
     settings,
-  );
-  return data;
-}
-
-/**
- * Test SMTP connection request
- */
-export interface TestSmtpRequest {
-  smtp_host: string;
-  smtp_port: number;
-  smtp_username: string;
-  smtp_password: string;
-  smtp_use_tls: boolean;
-}
-
-/**
- * Test SMTP connection with provided config
- * @param config - SMTP configuration to test
- * @returns Test result message
- */
-export async function testSmtpConnection(
-  config: TestSmtpRequest,
-): Promise<{ message: string }> {
-  const { data } = await apiClient.post<{ message: string }>(
-    "/admin/settings/test-smtp",
-    config,
-  );
-  return data;
-}
-
-/**
- * Send test email request
- */
-export interface SendTestEmailRequest {
-  email: string;
-  smtp_host: string;
-  smtp_port: number;
-  smtp_username: string;
-  smtp_password: string;
-  smtp_from_email: string;
-  smtp_from_name: string;
-  smtp_use_tls: boolean;
-}
-
-/**
- * Send test email with provided SMTP config
- * @param request - Email address and SMTP config
- * @returns Test result message
- */
-export async function sendTestEmail(
-  request: SendTestEmailRequest,
-): Promise<{ message: string }> {
-  const { data } = await apiClient.post<{ message: string }>(
-    "/admin/settings/send-test-email",
-    request,
-  );
-  return data;
-}
-
-// ==================== Email Template Settings ====================
-
-export interface EmailTemplateOption {
-  value: string;
-  label?: string;
-  description?: string;
-  category?: string;
-  optional?: boolean;
-}
-
-export type EmailTemplateEventOption = string | EmailTemplateOption;
-
-export interface EmailTemplateSummary {
-  event: string;
-  locale: string;
-  subject: string;
-  is_custom?: boolean;
-  updated_at?: string;
-}
-
-export interface EmailTemplateListResponse {
-  events: EmailTemplateEventOption[];
-  locales: string[];
-  templates?: EmailTemplateSummary[];
-  placeholders?: string[];
-}
-
-export interface EmailTemplateDetail {
-  event: string;
-  locale: string;
-  subject: string;
-  html: string;
-  is_custom?: boolean;
-  updated_at?: string;
-  placeholders?: string[];
-}
-
-export interface UpdateEmailTemplateRequest {
-  subject: string;
-  html: string;
-}
-
-export interface PreviewEmailTemplateRequest extends UpdateEmailTemplateRequest {
-  event: string;
-  locale: string;
-}
-
-export interface EmailTemplatePreviewResponse {
-  subject: string;
-  html: string;
-}
-
-export async function getEmailTemplates(): Promise<EmailTemplateListResponse> {
-  const { data } = await apiClient.get<EmailTemplateListResponse>(
-    "/admin/settings/email-templates",
-  );
-  return data;
-}
-
-export async function getEmailTemplate(
-  event: string,
-  locale: string,
-): Promise<EmailTemplateDetail> {
-  const { data } = await apiClient.get<EmailTemplateDetail>(
-    `/admin/settings/email-templates/${encodeURIComponent(event)}/${encodeURIComponent(locale)}`,
-  );
-  return data;
-}
-
-export async function updateEmailTemplate(
-  event: string,
-  locale: string,
-  request: UpdateEmailTemplateRequest,
-): Promise<EmailTemplateDetail> {
-  const { data } = await apiClient.put<EmailTemplateDetail>(
-    `/admin/settings/email-templates/${encodeURIComponent(event)}/${encodeURIComponent(locale)}`,
-    request,
-  );
-  return data;
-}
-
-export async function restoreOfficialEmailTemplate(
-  event: string,
-  locale: string,
-): Promise<EmailTemplateDetail> {
-  const { data } = await apiClient.post<EmailTemplateDetail>(
-    `/admin/settings/email-templates/${encodeURIComponent(event)}/${encodeURIComponent(locale)}/restore-official`,
-  );
-  return data;
-}
-
-export async function previewEmailTemplate(
-  request: PreviewEmailTemplateRequest,
-): Promise<EmailTemplatePreviewResponse> {
-  const { data } = await apiClient.post<EmailTemplatePreviewResponse>(
-    "/admin/settings/email-template-preview",
-    request,
   );
   return data;
 }
@@ -1333,13 +1027,6 @@ export async function resetWebSearchUsage(payload: {
 export const settingsAPI = {
   getSettings,
   updateSettings,
-  testSmtpConnection,
-  sendTestEmail,
-  getEmailTemplates,
-  getEmailTemplate,
-  updateEmailTemplate,
-  restoreOfficialEmailTemplate,
-  previewEmailTemplate,
   getAdminApiKey,
   regenerateAdminApiKey,
   deleteAdminApiKey,

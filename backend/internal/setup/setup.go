@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -27,13 +26,9 @@ const (
 	ConfigFileName             = "config.yaml"
 	InstallLockFile            = ".installed"
 	defaultUserConcurrency     = 5
-	simpleModeAdminConcurrency = 30
 )
 
 func setupDefaultAdminConcurrency() int {
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("RUN_MODE")), config.RunModeSimple) {
-		return simpleModeAdminConcurrency
-	}
 	return defaultUserConcurrency
 }
 

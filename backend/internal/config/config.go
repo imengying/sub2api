@@ -17,7 +17,6 @@ import (
 
 const (
 	RunModeStandard = "standard"
-	RunModeSimple   = "simple"
 )
 
 // 使用量记录队列溢出策略
@@ -1342,7 +1341,7 @@ type UsageCleanupConfig struct {
 func NormalizeRunMode(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch normalized {
-	case RunModeStandard, RunModeSimple:
+	case RunModeStandard:
 		return normalized
 	default:
 		return RunModeStandard

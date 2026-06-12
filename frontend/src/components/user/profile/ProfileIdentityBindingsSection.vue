@@ -162,29 +162,6 @@
                   : t('profile.authBindings.manageEmailAction')
               }}
             </button>
-            <button
-              v-if="item.canBind"
-              :data-testid="`profile-binding-${item.provider}-action`"
-              type="button"
-              class="btn btn-primary btn-sm"
-              @click="startBinding(item.provider)"
-            >
-              {{ t('profile.authBindings.bindAction', { providerName: item.label }) }}
-            </button>
-            <button
-              v-if="item.canUnbind"
-              :data-testid="`profile-binding-${item.provider}-unbind`"
-              type="button"
-              class="btn btn-secondary btn-sm"
-              :disabled="unbindingProvider === item.provider"
-              @click="handleUnbindForItem(item.provider, item.label)"
-            >
-              {{
-                unbindingProvider === item.provider
-                  ? t('common.loading')
-                  : t('profile.authBindings.unbindAction')
-              }}
-            </button>
           </div>
         </div>
       </div>
@@ -195,52 +172,27 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
-import {
-  hasExplicitWeChatOAuthCapabilities,
-  resolveWeChatOAuthStartStrict,
-  type WeChatOAuthPublicSettings,
-} from '@/api/auth'
 import {
   bindEmailIdentity,
   sendEmailBindingCode,
-  startOAuthBinding,
-  unbindAuthIdentity,
 } from '@/api/user'
 import Icon from '@/components/icons/Icon.vue'
 import { useAppStore, useAuthStore } from '@/stores'
 import type { User, UserAuthBindingStatus, UserAuthProvider } from '@/types'
 
-type BindableProvider = Exclude<UserAuthProvider, 'email'>
-
 const props = withDefaults(
   defineProps<{
     user: User | null
-    linuxdoEnabled?: boolean
-    dingtalkEnabled?: boolean
-    oidcEnabled?: boolean
-    oidcProviderName?: string
-    wechatEnabled?: boolean
-    wechatOpenEnabled?: boolean
-    wechatMpEnabled?: boolean
     embedded?: boolean
     compact?: boolean
   }>(),
   {
-    linuxdoEnabled: false,
-    dingtalkEnabled: false,
-    oidcEnabled: false,
-    oidcProviderName: 'OIDC',
-    wechatEnabled: false,
-    wechatOpenEnabled: undefined,
-    wechatMpEnabled: undefined,
     embedded: false,
     compact: false,
   }
 )
 
 const { t } = useI18n()
-const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
@@ -248,7 +200,6 @@ const localUser = ref<User | null>(null)
 const isSendingEmailCode = ref(false)
 const isBindingEmail = ref(false)
 const isEmailFormExpanded = ref(!props.compact)
-const unbindingProvider = ref<BindableProvider | null>(null)
 const emailBindingForm = reactive({
   email: '',
   verifyCode: '',
@@ -303,50 +254,7 @@ const emailSubmitActionLabel = computed(() =>
 const legacyBindingNoteKeys: Record<string, string> = {
   'Primary account email is managed from the profile form.':
     'profile.authBindings.notes.emailManagedFromProfile',
-  'You can unbind this sign-in method.': 'profile.authBindings.notes.canUnbind',
-  'Bind another sign-in method before unbinding.':
-    'profile.authBindings.notes.bindAnotherBeforeUnbind',
 }
-
-function resolveLegacyCompatibleWeChatSettings(
-  settings: WeChatOAuthPublicSettings | null | undefined
-): (WeChatOAuthPublicSettings & {
-  wechat_oauth_open_enabled: boolean
-  wechat_oauth_mp_enabled: boolean
-}) | null {
-  if (!settings) {
-    return null
-  }
-
-  if (hasExplicitWeChatOAuthCapabilities(settings)) {
-    return settings
-  }
-
-  if (typeof settings.wechat_oauth_enabled !== 'boolean') {
-    return null
-  }
-
-  return {
-    ...settings,
-    wechat_oauth_open_enabled: settings.wechat_oauth_enabled,
-    wechat_oauth_mp_enabled: settings.wechat_oauth_enabled,
-  }
-}
-
-const wechatOAuthSettings = computed<WeChatOAuthPublicSettings | null>(() => {
-  const cachedSettings = resolveLegacyCompatibleWeChatSettings(appStore.cachedPublicSettings)
-  if (cachedSettings) {
-    return cachedSettings
-  }
-
-  return resolveLegacyCompatibleWeChatSettings({
-    wechat_oauth_enabled: props.wechatEnabled,
-    wechat_oauth_open_enabled: props.wechatOpenEnabled,
-    wechat_oauth_mp_enabled: props.wechatMpEnabled,
-  })
-})
-
-const resolvedWeChatBinding = computed(() => resolveWeChatOAuthStartStrict(wechatOAuthSettings.value))
 
 function normalizeBindingStatus(binding: boolean | UserAuthBindingStatus | undefined): boolean | null {
   if (typeof binding === 'boolean') {
@@ -404,19 +312,6 @@ function getDisplayableEmail(user: User | null | undefined): string {
   return email
 }
 
-function isProviderEnabledForBinding(provider: BindableProvider): boolean {
-  if (provider === 'linuxdo') {
-    return props.linuxdoEnabled
-  }
-  if (provider === 'dingtalk') {
-    return props.dingtalkEnabled
-  }
-  if (provider === 'oidc') {
-    return props.oidcEnabled
-  }
-  return resolvedWeChatBinding.value.mode !== null
-}
-
 const providerItems = computed(() => [
   {
     provider: 'email' as const,
@@ -426,81 +321,13 @@ const providerItems = computed(() => [
     canUnbind: false,
     details: getBindingDetails('email'),
   },
-  {
-    provider: 'linuxdo' as const,
-    label: t('profile.authBindings.providers.linuxdo'),
-    bound: getBindingStatus('linuxdo'),
-    canBind:
-      !getBindingStatus('linuxdo') &&
-      isProviderEnabledForBinding('linuxdo') &&
-      (getBindingDetails('linuxdo')?.can_bind ?? true),
-    canUnbind: Boolean(getBindingStatus('linuxdo') && getBindingDetails('linuxdo')?.can_unbind),
-    details: getBindingDetails('linuxdo'),
-  },
-  {
-    provider: 'dingtalk' as const,
-    label: t('profile.authBindings.providers.dingtalk'),
-    bound: getBindingStatus('dingtalk'),
-    canBind:
-      !getBindingStatus('dingtalk') &&
-      isProviderEnabledForBinding('dingtalk') &&
-      (getBindingDetails('dingtalk')?.can_bind ?? true),
-    canUnbind: Boolean(getBindingStatus('dingtalk') && getBindingDetails('dingtalk')?.can_unbind),
-    details: getBindingDetails('dingtalk'),
-  },
-  {
-    provider: 'oidc' as const,
-    label: t('profile.authBindings.providers.oidc', { providerName: props.oidcProviderName }),
-    bound: getBindingStatus('oidc'),
-    canBind:
-      !getBindingStatus('oidc') &&
-      isProviderEnabledForBinding('oidc') &&
-      (getBindingDetails('oidc')?.can_bind ?? true),
-    canUnbind: Boolean(getBindingStatus('oidc') && getBindingDetails('oidc')?.can_unbind),
-    details: getBindingDetails('oidc'),
-  },
-  {
-    provider: 'wechat' as const,
-    label: t('profile.authBindings.providers.wechat'),
-    bound: getBindingStatus('wechat'),
-    canBind:
-      !getBindingStatus('wechat') &&
-      isProviderEnabledForBinding('wechat') &&
-      (getBindingDetails('wechat')?.can_bind ?? true),
-    canUnbind: Boolean(getBindingStatus('wechat') && getBindingDetails('wechat')?.can_unbind),
-    details: getBindingDetails('wechat'),
-  },
 ])
 
-function providerInitial(provider: UserAuthProvider): string {
-  if (provider === 'linuxdo') {
-    return 'L'
-  }
-  if (provider === 'dingtalk') {
-    return 'D'
-  }
-  if (provider === 'wechat') {
-    return 'W'
-  }
-  if (provider === 'oidc') {
-    return 'O'
-  }
+function providerInitial(_provider: UserAuthProvider): string {
   return 'E'
 }
 
-function providerIconClass(provider: UserAuthProvider): string {
-  if (provider === 'linuxdo') {
-    return 'bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300'
-  }
-  if (provider === 'dingtalk') {
-    return 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
-  }
-  if (provider === 'wechat') {
-    return 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-300'
-  }
-  if (provider === 'oidc') {
-    return 'bg-sky-100 text-sky-600 dark:bg-sky-900/20 dark:text-sky-300'
-  }
+function providerIconClass(_provider: UserAuthProvider): string {
   return 'bg-primary-100 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
 }
 
@@ -552,39 +379,9 @@ function toggleEmailForm(): void {
   isEmailFormExpanded.value = !isEmailFormExpanded.value
 }
 
-function startBinding(provider: UserAuthProvider): void {
-  if (provider === 'email') {
-    return
-  }
-  startOAuthBinding(provider, {
-    redirectTo: route.fullPath || '/profile',
-    wechatOAuthSettings: provider === 'wechat' ? wechatOAuthSettings.value : null,
-  })
-}
-
 function applyUpdatedUser(user: User): void {
   localUser.value = user
   authStore.user = user
-}
-
-async function handleUnbind(provider: BindableProvider, providerLabel: string): Promise<void> {
-  unbindingProvider.value = provider
-  try {
-    const user = await unbindAuthIdentity(provider)
-    applyUpdatedUser(user)
-    appStore.showSuccess(t('profile.authBindings.unbindSuccess', { providerName: providerLabel }))
-  } catch (error) {
-    appStore.showError((error as { message?: string }).message || t('common.tryAgain'))
-  } finally {
-    unbindingProvider.value = null
-  }
-}
-
-function handleUnbindForItem(provider: UserAuthProvider, providerLabel: string): void {
-  if (provider === 'email') {
-    return
-  }
-  void handleUnbind(provider, providerLabel)
 }
 
 function validateEmailBindingForm(requireCode: boolean): boolean {

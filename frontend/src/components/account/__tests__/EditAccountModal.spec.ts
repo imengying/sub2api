@@ -16,9 +16,7 @@ vi.mock('@/stores/app', () => ({
 }))
 
 vi.mock('@/stores/auth', () => ({
-  useAuthStore: () => ({
-    isSimpleMode: true
-  })
+  useAuthStore: () => ({})
 }))
 
 vi.mock('@/api/admin', () => ({

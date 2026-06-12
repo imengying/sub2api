@@ -25,12 +25,8 @@ func RegisterUserRoutes(
 			user.GET("/profile", h.User.GetProfile)
 			user.PUT("/password", h.User.ChangePassword)
 			user.PUT("", h.User.UpdateProfile)
-			user.GET("/aff", h.User.GetAffiliate)
-			user.POST("/aff/transfer", h.User.TransferAffiliateQuota)
 			user.POST("/account-bindings/email/send-code", h.User.SendEmailBindingCode)
 			user.POST("/account-bindings/email", h.User.BindEmailIdentity)
-			user.DELETE("/account-bindings/:provider", h.User.UnbindIdentity)
-			user.POST("/auth-identities/bind/start", h.User.StartIdentityBinding)
 			user.GET("/api-keys/:id/usage/daily", h.Usage.GetMyAPIKeyDailyUsage)
 			user.GET("/platform-quotas", h.User.GetMyPlatformQuotas)
 
@@ -91,29 +87,6 @@ func RegisterUserRoutes(
 			usage.GET("/dashboard/trend", h.Usage.DashboardTrend)
 			usage.GET("/dashboard/models", h.Usage.DashboardModels)
 			usage.POST("/dashboard/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
-		}
-
-		// 公告（用户可见）
-		announcements := authenticated.Group("/announcements")
-		{
-			announcements.GET("", h.Announcement.List)
-			announcements.POST("/:id/read", h.Announcement.MarkRead)
-		}
-
-		// 卡密兑换
-		redeem := authenticated.Group("/redeem")
-		{
-			redeem.POST("", h.Redeem.Redeem)
-			redeem.GET("/history", h.Redeem.GetHistory)
-		}
-
-		// 用户订阅
-		subscriptions := authenticated.Group("/subscriptions")
-		{
-			subscriptions.GET("", h.Subscription.List)
-			subscriptions.GET("/active", h.Subscription.GetActive)
-			subscriptions.GET("/progress", h.Subscription.GetProgress)
-			subscriptions.GET("/summary", h.Subscription.GetSummary)
 		}
 
 		// 渠道监控（用户只读）

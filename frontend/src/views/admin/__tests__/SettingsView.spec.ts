@@ -98,12 +98,6 @@ vi.mock("@/stores/adminSettings", () => ({
   }),
 }));
 
-vi.mock("@/composables/useClipboard", () => ({
-  useClipboard: () => ({
-    copyToClipboard: vi.fn(),
-  }),
-}));
-
 vi.mock("@/utils/apiError", () => ({
   extractApiErrorMessage: () => "error",
 }));
@@ -111,42 +105,11 @@ vi.mock("@/utils/apiError", () => ({
 vi.mock("vue-i18n", async () => {
   const actual = await vi.importActual<typeof import("vue-i18n")>("vue-i18n");
   const translations: Record<string, string> = {
-    "admin.settings.wechatConnect.title": "微信登录",
-    "admin.settings.wechatConnect.description": "用于微信开放平台或公众号/小程序的第三方登录配置。",
-    "admin.settings.wechatConnect.enabledLabel": "启用微信登录",
-    "admin.settings.wechatConnect.enabledHint": "开启后可使用微信第三方登录回调与授权配置。",
-    "admin.settings.wechatConnect.appIdLabel": "AppID",
-    "admin.settings.wechatConnect.appIdPlaceholder": "微信开放平台 AppID",
-    "admin.settings.wechatConnect.appSecretLabel": "AppSecret",
-    "admin.settings.wechatConnect.appSecretConfiguredPlaceholder": "密钥已配置，留空以保留当前值。",
-    "admin.settings.wechatConnect.appSecretPlaceholder": "微信开放平台 AppSecret",
-    "admin.settings.wechatConnect.appSecretConfiguredHint": "密钥已配置，留空以保留当前值。",
-    "admin.settings.wechatConnect.appSecretHint": "填写后会覆盖当前微信密钥。",
-    "admin.settings.wechatConnect.modeLabel": "模式",
-    "admin.settings.wechatConnect.openModeLabel": "非微信环境使用开放平台",
-    "admin.settings.wechatConnect.openModeHint": "浏览器不在微信内时，自动走开放平台扫码授权。",
-    "admin.settings.wechatConnect.mpModeLabel": "微信环境使用公众号",
-    "admin.settings.wechatConnect.mpModeHint": "浏览器在微信内时，自动走公众号授权。",
-    "admin.settings.wechatConnect.redirectUrlLabel": "回调地址",
-    "admin.settings.wechatConnect.redirectUrlPlaceholder": "https://your-site.com/api/v1/auth/oauth/wechat/callback",
-    "admin.settings.wechatConnect.generateAndCopy": "使用当前站点生成并复制",
-    "admin.settings.wechatConnect.redirectUrlSetAndCopied": "已使用当前站点生成回调地址并复制到剪贴板",
-    "admin.settings.wechatConnect.frontendRedirectUrlLabel": "前端回调地址",
-    "admin.settings.wechatConnect.frontendRedirectUrlPlaceholder": "/auth/wechat/callback",
-    "admin.settings.wechatConnect.frontendRedirectUrlHint": "通常用于前端路由回调地址，需与后端配置保持一致。",
     "admin.settings.authSourceDefaults.title": "认证来源默认值",
     "admin.settings.authSourceDefaults.description": "按注册来源配置新用户默认余额、并发、订阅与授权策略。",
-    "admin.settings.authSourceDefaults.requireEmailLabel": "第三方注册强制补充邮箱",
-    "admin.settings.authSourceDefaults.requireEmailHint": "启用后，Linux DO、OIDC、微信注册缺少邮箱时必须先补充邮箱地址。",
     "admin.settings.authSourceDefaults.enabledHint": "以下默认值会在该来源注册新用户时发放；首次绑定时授权仅作用于已有账号绑定该来源。",
     "admin.settings.authSourceDefaults.sources.email.title": "邮箱注册",
     "admin.settings.authSourceDefaults.sources.email.description": "适用于邮箱密码注册的新用户默认配额。",
-    "admin.settings.authSourceDefaults.sources.linuxdo.title": "Linux DO 登录",
-    "admin.settings.authSourceDefaults.sources.linuxdo.description": "适用于 Linux DO 第三方注册的新用户默认配额。",
-    "admin.settings.authSourceDefaults.sources.oidc.title": "OIDC 登录",
-    "admin.settings.authSourceDefaults.sources.oidc.description": "适用于 OIDC 第三方注册的新用户默认配额。",
-    "admin.settings.authSourceDefaults.sources.wechat.title": "微信登录",
-    "admin.settings.authSourceDefaults.sources.wechat.description": "适用于微信第三方注册的新用户默认配额。",
     "admin.settings.authSourceDefaults.grantOnFirstBindLabel": "首次绑定时授权",
     "admin.settings.authSourceDefaults.grantOnFirstBindHint": "已有账号首次绑定该来源时发放默认权益。",
     "admin.settings.authSourceDefaults.defaultSubscriptionsLabel": "默认订阅",
@@ -325,42 +288,6 @@ const baseSettingsResponse = {
   turnstile_enabled: false,
   turnstile_site_key: "",
   turnstile_secret_key_configured: false,
-  linuxdo_connect_enabled: false,
-  linuxdo_connect_client_id: "",
-  linuxdo_connect_client_secret_configured: false,
-  linuxdo_connect_redirect_url: "",
-  wechat_connect_enabled: true,
-  wechat_connect_app_id: "wx-app-id-123",
-  wechat_connect_app_secret_configured: true,
-  wechat_connect_open_enabled: false,
-  wechat_connect_mp_enabled: true,
-  wechat_connect_mode: "mp",
-  wechat_connect_scopes: "",
-  wechat_connect_redirect_url:
-    "https://admin.example.com/api/v1/auth/oauth/wechat/callback",
-  wechat_connect_frontend_redirect_url: "/auth/wechat/callback",
-  oidc_connect_enabled: false,
-  oidc_connect_provider_name: "OIDC",
-  oidc_connect_client_id: "",
-  oidc_connect_client_secret_configured: false,
-  oidc_connect_issuer_url: "",
-  oidc_connect_discovery_url: "",
-  oidc_connect_authorize_url: "",
-  oidc_connect_token_url: "",
-  oidc_connect_userinfo_url: "",
-  oidc_connect_jwks_url: "",
-  oidc_connect_scopes: "openid email profile",
-  oidc_connect_redirect_url: "",
-  oidc_connect_frontend_redirect_url: "/auth/oidc/callback",
-  oidc_connect_token_auth_method: "client_secret_post",
-  oidc_connect_use_pkce: true,
-  oidc_connect_validate_id_token: true,
-  oidc_connect_allowed_signing_algs: "RS256,ES256,PS256",
-  oidc_connect_clock_skew_seconds: 120,
-  oidc_connect_require_email_verified: false,
-  oidc_connect_userinfo_email_path: "",
-  oidc_connect_userinfo_id_path: "",
-  oidc_connect_userinfo_username_path: "",
   enable_model_fallback: false,
   fallback_model_anthropic: "",
   fallback_model_openai: "",
@@ -430,9 +357,6 @@ function mountView() {
         Select: SelectStub,
         Toggle: ToggleStub,
         Icon: true,
-        ConfirmDialog: true,
-        PaymentProviderList: true,
-        PaymentProviderDialog: true,
         GroupBadge: true,
         GroupOptionItem: true,
         ProxySelector: true,
@@ -441,26 +365,6 @@ function mountView() {
       },
     },
   });
-}
-
-async function openPaymentTab(wrapper: ReturnType<typeof mountView>) {
-  const paymentTabButton = wrapper
-    .findAll("button")
-    .find((node) => node.text().includes("admin.settings.tabs.payment"));
-
-  expect(paymentTabButton).toBeDefined();
-  await paymentTabButton?.trigger("click");
-  await flushPromises();
-}
-
-async function openSecurityTab(wrapper: ReturnType<typeof mountView>) {
-  const securityTabButton = wrapper
-    .findAll("button")
-    .find((node) => node.text().includes("admin.settings.tabs.security"));
-
-  expect(securityTabButton).toBeDefined();
-  await securityTabButton?.trigger("click");
-  await flushPromises();
 }
 
 async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
@@ -473,7 +377,7 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
   await flushPromises();
 }
 
-describe("admin SettingsView payment visible method controls", () => {
+describe("admin SettingsView removed settings areas", () => {
   beforeEach(() => {
     getSettings.mockReset();
     updateSettings.mockReset();
@@ -552,54 +456,68 @@ describe("admin SettingsView payment visible method controls", () => {
     adminSettingsFetch.mockResolvedValue(undefined);
   });
 
-  it("does not render legacy visible payment method controls", async () => {
+  it("does not render login agreement, payment, or email settings tabs", async () => {
     const wrapper = mountView();
 
     await flushPromises();
-    await openPaymentTab(wrapper);
 
-    expect(wrapper.text()).not.toContain("可见方式");
-    expect(wrapper.text()).not.toContain("支付来源");
+    const renderedTabs = wrapper.findAll('[role="tab"]').map((node) => node.text());
+    expect(renderedTabs).not.toContain("admin.settings.tabs.agreement");
+    expect(renderedTabs).not.toContain("admin.settings.tabs.payment");
+    expect(renderedTabs).not.toContain("admin.settings.tabs.email");
   });
 
-  it("links payment guidance to README sections instead of removed payment docs", async () => {
+  it("does not load payment providers from the settings page", async () => {
     const wrapper = mountView();
 
     await flushPromises();
-    await openPaymentTab(wrapper);
 
-    const paymentLinks = wrapper
-      .findAll("a")
-      .filter((node) =>
-        ["查看支付配置说明", "查看支持的支付方式"].includes(node.text()),
-      );
-
-    expect(paymentLinks).toHaveLength(2);
-    expect(paymentLinks[0]?.attributes("href")).toBe(
-      "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT_CN.md",
-    );
-    expect(paymentLinks[1]?.attributes("href")).toBe(
-      "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT_CN.md#支持的支付方式",
-    );
-    for (const link of paymentLinks) {
-      expect(link.attributes("href")).toContain("docs/PAYMENT");
-    }
+    expect(wrapper.exists()).toBe(true);
+    expect(getProviders).not.toHaveBeenCalled();
   });
 
-  it("does not submit legacy visible payment method settings", async () => {
+  it("does not submit removed settings groups", async () => {
     const wrapper = mountView();
 
     await flushPromises();
-    await openPaymentTab(wrapper);
     await wrapper.find("form").trigger("submit.prevent");
     await flushPromises();
 
     expect(updateSettings).toHaveBeenCalledTimes(1);
     const payload = updateSettings.mock.calls[0]?.[0];
-    expect(payload).not.toHaveProperty("payment_visible_method_alipay_source");
-    expect(payload).not.toHaveProperty("payment_visible_method_wxpay_source");
-    expect(payload).not.toHaveProperty("payment_visible_method_alipay_enabled");
-    expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
+    expect(payload).not.toHaveProperty("login_agreement_enabled");
+    expect(payload).not.toHaveProperty("login_agreement_mode");
+    expect(payload).not.toHaveProperty("login_agreement_documents");
+    expect(payload).not.toHaveProperty("payment_enabled");
+    expect(payload).not.toHaveProperty("payment_min_amount");
+    expect(payload).not.toHaveProperty("payment_enabled_types");
+    expect(payload).not.toHaveProperty("smtp_host");
+    expect(payload).not.toHaveProperty("smtp_username");
+    expect(payload).not.toHaveProperty("smtp_password");
+    expect(payload).not.toHaveProperty("balance_low_notify_enabled");
+    expect(payload).not.toHaveProperty("subscription_expiry_notify_enabled");
+    expect(payload).not.toHaveProperty("account_quota_notify_enabled");
+    expect(payload).not.toHaveProperty("linuxdo_connect_enabled");
+    expect(payload).not.toHaveProperty("dingtalk_connect_enabled");
+    expect(payload).not.toHaveProperty("wechat_connect_enabled");
+    expect(payload).not.toHaveProperty("oidc_connect_enabled");
+    expect(payload).not.toHaveProperty("github_oauth_enabled");
+    expect(payload).not.toHaveProperty("google_oauth_enabled");
+    expect(payload).not.toHaveProperty("force_email_on_third_party_signup");
+    expect(payload).not.toHaveProperty("affiliate_enabled");
+    expect(payload).not.toHaveProperty("affiliate_rebate_rate");
+  });
+
+  it("does not render third-party login, email OAuth, or affiliate controls", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="wechat-connect-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="github-oauth-apps-guide-link"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="oidc-connect-use-pkce"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("邮箱快捷登录");
+    expect(wrapper.text()).not.toContain("邀请返利");
   });
 
   it("submits Anthropic cache TTL injection gateway setting", async () => {
@@ -662,69 +580,6 @@ describe("admin SettingsView payment visible method controls", () => {
     );
   });
 
-  it("updates provider enablement immediately and reloads providers", async () => {
-    const provider = {
-      id: 7,
-      provider_key: "alipay",
-      name: "Official Alipay",
-      config: {},
-      supported_types: ["alipay"],
-      enabled: false,
-      payment_mode: "",
-      refund_enabled: false,
-      allow_user_refund: false,
-      limits: "",
-      sort_order: 0,
-    };
-    getProviders.mockReset();
-    getProviders
-      .mockResolvedValueOnce({ data: [provider] })
-      .mockResolvedValueOnce({ data: [{ ...provider, enabled: true }] });
-    updateProvider.mockResolvedValue({ data: { ...provider, enabled: true } });
-
-    const PaymentProviderListStub = defineComponent({
-      emits: ["toggleField"],
-      setup(_, { emit }) {
-        return () =>
-          h(
-            "button",
-            {
-              class: "provider-toggle-stub",
-              onClick: () => emit("toggleField", provider, "enabled"),
-            },
-            "toggle provider",
-          );
-      },
-    });
-
-    const wrapper = mount(SettingsView, {
-      global: {
-        stubs: {
-          AppLayout: AppLayoutStub,
-          Select: SelectStub,
-          Toggle: ToggleStub,
-          Icon: true,
-          ConfirmDialog: true,
-          PaymentProviderList: PaymentProviderListStub,
-          PaymentProviderDialog: true,
-          GroupBadge: true,
-          GroupOptionItem: true,
-          ProxySelector: true,
-          ImageUpload: ImageUploadStub,
-          BackupSettings: true,
-        },
-      },
-    });
-
-    await flushPromises();
-    await openPaymentTab(wrapper);
-    await wrapper.get(".provider-toggle-stub").trigger("click");
-    await flushPromises();
-
-    expect(updateProvider).toHaveBeenCalledWith(7, { enabled: true });
-    expect(getProviders).toHaveBeenCalledTimes(2);
-  });
-
   it("renders advanced scheduler copy as local experimental gateway policy", async () => {
     const wrapper = mountView();
 
@@ -736,220 +591,6 @@ describe("admin SettingsView payment visible method controls", () => {
     );
     expect(wrapper.text()).not.toContain("OpenAI 高级调度器");
   });
-
-  it("passes translated upload and remove labels to the payment help image uploader", async () => {
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openPaymentTab(wrapper);
-
-    const imageUploads = wrapper.findAll(".image-upload-stub");
-    expect(imageUploads.length).toBeGreaterThan(0);
-
-    const paymentHelpImageUpload = imageUploads.find(
-      (node) => node.attributes("data-placeholder") === "admin.settings.payment.helpImagePlaceholder",
-    );
-
-    expect(paymentHelpImageUpload).toBeDefined();
-    expect(paymentHelpImageUpload?.attributes("data-upload-label")).toBe("上传图片");
-    expect(paymentHelpImageUpload?.attributes("data-remove-label")).toBe("移除");
-  });
-});
-
-describe("admin SettingsView wechat connect controls", () => {
-  beforeEach(() => {
-    getSettings.mockReset();
-    updateSettings.mockReset();
-    getWebSearchEmulationConfig.mockReset();
-    updateWebSearchEmulationConfig.mockReset();
-    getAdminApiKey.mockReset();
-    getOverloadCooldownSettings.mockReset();
-    getRateLimit429CooldownSettings.mockReset();
-    updateRateLimit429CooldownSettings.mockReset();
-    getStreamTimeoutSettings.mockReset();
-    getRectifierSettings.mockReset();
-    getBetaPolicySettings.mockReset();
-    getGroups.mockReset();
-    listProxies.mockReset();
-    getProviders.mockReset();
-    updateProvider.mockReset();
-    createProvider.mockReset();
-    deleteProvider.mockReset();
-    fetchPublicSettings.mockReset();
-    adminSettingsFetch.mockReset();
-    showError.mockReset();
-    showSuccess.mockReset();
-
-    getSettings.mockResolvedValue({
-      ...baseSettingsResponse,
-      payment_visible_method_wxpay_source: "official_wxpay",
-    });
-    updateSettings.mockImplementation(async (payload) => ({
-      ...baseSettingsResponse,
-      payment_visible_method_wxpay_source: "official_wxpay",
-      ...payload,
-    }));
-    getWebSearchEmulationConfig.mockResolvedValue({
-      enabled: false,
-      providers: [],
-    });
-    updateWebSearchEmulationConfig.mockResolvedValue({
-      enabled: false,
-      providers: [],
-    });
-    getAdminApiKey.mockResolvedValue({
-      exists: false,
-      masked_key: "",
-    });
-    getOverloadCooldownSettings.mockResolvedValue({
-      enabled: true,
-      cooldown_minutes: 10,
-    });
-    getRateLimit429CooldownSettings.mockResolvedValue({
-      enabled: true,
-      cooldown_seconds: 5,
-    });
-    updateRateLimit429CooldownSettings.mockImplementation(async (payload) => payload);
-    getStreamTimeoutSettings.mockResolvedValue({
-      enabled: true,
-      action: "temp_unsched",
-      temp_unsched_minutes: 5,
-      threshold_count: 3,
-      threshold_window_minutes: 10,
-    });
-    getRectifierSettings.mockResolvedValue({
-      enabled: true,
-      thinking_signature_enabled: true,
-      thinking_budget_enabled: true,
-      apikey_signature_enabled: false,
-      apikey_signature_patterns: [],
-    });
-    getBetaPolicySettings.mockResolvedValue({
-      rules: [],
-    });
-    getGroups.mockResolvedValue([]);
-    listProxies.mockResolvedValue({
-      items: [],
-    });
-    getProviders.mockResolvedValue({
-      data: [],
-    });
-    fetchPublicSettings.mockResolvedValue(undefined);
-    adminSettingsFetch.mockResolvedValue(undefined);
-  });
-
-  it("loads and echoes WeChat Connect fields from the backend payload", async () => {
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openSecurityTab(wrapper);
-
-    expect(
-      (
-        wrapper.get('[data-testid="wechat-connect-mp-app-id"]')
-          .element as HTMLInputElement
-      ).value,
-    ).toBe("wx-app-id-123");
-    expect(
-      (
-        wrapper.get('[data-testid="wechat-connect-open-enabled"]')
-          .element as HTMLInputElement
-      ).checked,
-    ).toBe(false);
-    expect(
-      (
-        wrapper.get('[data-testid="wechat-connect-mp-enabled"]')
-          .element as HTMLInputElement
-      ).checked,
-    ).toBe(true);
-    expect(wrapper.find('[data-testid="wechat-connect-scopes"]').exists()).toBe(
-      false,
-    );
-    expect(
-      wrapper
-        .get('[data-testid="wechat-connect-mp-app-secret"]')
-        .attributes("placeholder"),
-    ).toContain("密钥已配置");
-    expect(
-      (
-        wrapper.get('[data-testid="wechat-connect-frontend-redirect-url"]')
-          .element as HTMLInputElement
-      ).value,
-    ).toBe("/auth/wechat/callback");
-  });
-
-  it("links GitHub OAuth Apps guide to GitHub developer settings", async () => {
-    getSettings.mockResolvedValueOnce({
-      ...baseSettingsResponse,
-      github_oauth_enabled: true,
-    });
-
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openSecurityTab(wrapper);
-
-    const link = wrapper.get('[data-testid="github-oauth-apps-guide-link"]');
-    expect(link.text()).toContain("OAuth Apps");
-    expect(link.attributes("href")).toBe("https://github.com/settings/developers");
-    expect(link.attributes("target")).toBe("_blank");
-    expect(link.attributes("rel")).toContain("noopener");
-  });
-
-  it("saves WeChat Connect fields using the backend contract and clears the secret after save", async () => {
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openSecurityTab(wrapper);
-
-    await wrapper
-      .get('[data-testid="wechat-connect-mp-app-id"]')
-      .setValue("wx-app-id-updated");
-    await wrapper
-      .get('[data-testid="wechat-connect-mp-app-secret"]')
-      .setValue("new-secret");
-    await wrapper
-      .get('[data-testid="wechat-connect-open-enabled"]')
-      .setValue(true);
-    await wrapper
-      .get('[data-testid="wechat-connect-mp-enabled"]')
-      .setValue(true);
-    await wrapper
-      .get('[data-testid="wechat-connect-redirect-url"]')
-      .setValue("https://admin.example.com/api/v1/auth/oauth/wechat/callback");
-    await wrapper
-      .get('[data-testid="wechat-connect-frontend-redirect-url"]')
-      .setValue("/auth/wechat/callback");
-    await wrapper.find("form").trigger("submit.prevent");
-    await flushPromises();
-
-    expect(updateSettings).toHaveBeenCalledTimes(1);
-    expect(updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        wechat_connect_enabled: true,
-        wechat_connect_app_id: "wx-app-id-updated",
-        wechat_connect_open_enabled: true,
-        wechat_connect_mp_enabled: true,
-        wechat_connect_mp_app_id: "wx-app-id-updated",
-        wechat_connect_mp_app_secret: "new-secret",
-        wechat_connect_redirect_url:
-          "https://admin.example.com/api/v1/auth/oauth/wechat/callback",
-        wechat_connect_frontend_redirect_url: "/auth/wechat/callback",
-      }),
-    );
-    expect(
-      (
-        wrapper.get('[data-testid="wechat-connect-mp-app-secret"]')
-          .element as HTMLInputElement
-      ).value,
-    ).toBe("");
-    expect(
-      wrapper
-        .get('[data-testid="wechat-connect-mp-app-secret"]')
-        .attributes("placeholder"),
-    ).toContain("密钥已配置");
-  });
-
   it("collapses auth source defaults until the source is enabled", async () => {
     const wrapper = mountView();
 
@@ -975,30 +616,12 @@ describe("admin SettingsView wechat connect controls", () => {
       wrapper.find('[data-testid="auth-source-email-panel"]').exists(),
     ).toBe(true);
     expect(wrapper.text()).toContain("首次绑定时授权");
-  });
-
-  it("preserves optional OIDC compatibility flags instead of forcing them on save", async () => {
-    getSettings.mockResolvedValueOnce({
-      ...baseSettingsResponse,
-      oidc_connect_enabled: true,
-      oidc_connect_use_pkce: false,
-      oidc_connect_validate_id_token: false,
-    });
-
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openSecurityTab(wrapper);
-    await wrapper.find("form").trigger("submit.prevent");
-    await flushPromises();
-
-    expect(updateSettings).toHaveBeenCalledTimes(1);
-    expect(updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        oidc_connect_use_pkce: false,
-        oidc_connect_validate_id_token: false,
-      }),
-    );
+    expect(wrapper.find('[data-testid="auth-source-linuxdo-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="auth-source-oidc-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="auth-source-wechat-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="auth-source-github-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="auth-source-google-enabled"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="auth-source-dingtalk-enabled"]').exists()).toBe(false);
   });
 });
 

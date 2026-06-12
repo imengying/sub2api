@@ -4,7 +4,6 @@ const authStore = vi.hoisted(() => ({
   checkAuth: vi.fn(),
   isAuthenticated: false,
   isAdmin: false,
-  isSimpleMode: false,
 }))
 
 const appStore = vi.hoisted(() => ({
@@ -43,14 +42,12 @@ vi.mock('@/composables/useRoutePrefetch', () => ({
   }),
 }))
 
-describe('router WeChat OAuth route', () => {
-  it('registers the WeChat callback route as a public route', async () => {
+describe('router WeChat payment OAuth route', () => {
+  it('does not register the removed WeChat login callback route', async () => {
     const { default: router } = await import('@/router')
     const route = router.getRoutes().find((record) => record.name === 'WeChatOAuthCallback')
 
-    expect(route?.path).toBe('/auth/wechat/callback')
-    expect(route?.meta.requiresAuth).toBe(false)
-    expect(route?.meta.title).toBe('WeChat OAuth Callback')
+    expect(route).toBeUndefined()
   })
 
   it('registers the WeChat payment callback route as a public route', async () => {

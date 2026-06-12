@@ -144,10 +144,6 @@ type SystemSettings struct {
 
 	DefaultConcurrency           int                          `json:"default_concurrency"`
 	DefaultBalance               float64                      `json:"default_balance"`
-	AffiliateRebateRate          float64                      `json:"affiliate_rebate_rate"`
-	AffiliateRebateFreezeHours   int                          `json:"affiliate_rebate_freeze_hours"`
-	AffiliateRebateDurationDays  int                          `json:"affiliate_rebate_duration_days"`
-	AffiliateRebatePerInviteeCap float64                      `json:"affiliate_rebate_per_invitee_cap"`
 	DefaultUserRPMLimit          int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
@@ -190,41 +186,8 @@ type SystemSettings struct {
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool `json:"web_search_emulation_enabled"`
 
-	// Payment visible method routing
-	PaymentVisibleMethodAlipaySource  string `json:"payment_visible_method_alipay_source"`
-	PaymentVisibleMethodWxpaySource   string `json:"payment_visible_method_wxpay_source"`
-	PaymentVisibleMethodAlipayEnabled bool   `json:"payment_visible_method_alipay_enabled"`
-	PaymentVisibleMethodWxpayEnabled  bool   `json:"payment_visible_method_wxpay_enabled"`
-
 	// OpenAI account scheduling
 	OpenAIAdvancedSchedulerEnabled bool `json:"openai_advanced_scheduler_enabled"`
-
-	// Payment configuration
-	PaymentEnabled                   bool     `json:"payment_enabled"`
-	PaymentMinAmount                 float64  `json:"payment_min_amount"`
-	PaymentMaxAmount                 float64  `json:"payment_max_amount"`
-	PaymentDailyLimit                float64  `json:"payment_daily_limit"`
-	PaymentOrderTimeoutMin           int      `json:"payment_order_timeout_minutes"`
-	PaymentMaxPendingOrders          int      `json:"payment_max_pending_orders"`
-	PaymentEnabledTypes              []string `json:"payment_enabled_types"`
-	PaymentBalanceDisabled           bool     `json:"payment_balance_disabled"`
-	PaymentBalanceRechargeMultiplier float64  `json:"payment_balance_recharge_multiplier"`
-	PaymentRechargeFeeRate           float64  `json:"payment_recharge_fee_rate"`
-	PaymentLoadBalanceStrat          string   `json:"payment_load_balance_strategy"`
-	PaymentProductNamePrefix         string   `json:"payment_product_name_prefix"`
-	PaymentProductNameSuffix         string   `json:"payment_product_name_suffix"`
-	PaymentHelpImageURL              string   `json:"payment_help_image_url"`
-	PaymentHelpText                  string   `json:"payment_help_text"`
-
-	// Cancel rate limit
-	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`
-	PaymentCancelRateLimitMax     int    `json:"payment_cancel_rate_limit_max"`
-	PaymentCancelRateLimitWindow  int    `json:"payment_cancel_rate_limit_window"`
-	PaymentCancelRateLimitUnit    string `json:"payment_cancel_rate_limit_unit"`
-	PaymentCancelRateLimitMode    string `json:"payment_cancel_rate_limit_window_mode"`
-
-	// Force Alipay mobile clients to use QR code payment instead of mobile redirect
-	PaymentAlipayForceQRCode bool `json:"payment_alipay_force_qrcode"`
 
 	// 余额、订阅到期与账号限额通知
 	BalanceLowNotifyEnabled         bool               `json:"balance_low_notify_enabled"`
@@ -243,9 +206,6 @@ type SystemSettings struct {
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`
-
-	// Affiliate (邀请返利) feature switch
-	AffiliateEnabled bool `json:"affiliate_enabled"`
 
 	// OpenAI fast/flex policy
 	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
@@ -304,7 +264,6 @@ type PublicSettings struct {
 	GoogleOAuthEnabled               bool                     `json:"google_oauth_enabled"`
 	SoraClientEnabled                bool                     `json:"sora_client_enabled"`
 	BackendModeEnabled               bool                     `json:"backend_mode_enabled"`
-	PaymentEnabled                   bool                     `json:"payment_enabled"`
 	Version                          string                   `json:"version"`
 	BalanceLowNotifyEnabled          bool                     `json:"balance_low_notify_enabled"`
 	AccountQuotaNotifyEnabled        bool                     `json:"account_quota_notify_enabled"`
@@ -315,8 +274,6 @@ type PublicSettings struct {
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
-
-	AffiliateEnabled bool `json:"affiliate_enabled"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 

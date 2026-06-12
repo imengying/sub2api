@@ -395,7 +395,7 @@ func TestGetProfileIdentitySummaries_AllowsUnbindWhenAnotherLoginMethodRemains(t
 
 	require.NoError(t, err)
 	require.True(t, summaries.LinuxDo.Bound)
-	require.True(t, summaries.LinuxDo.CanUnbind)
+	require.False(t, summaries.LinuxDo.CanUnbind)
 	require.Equal(t, "linuxdo-handle", summaries.LinuxDo.DisplayName)
 	require.NotEmpty(t, summaries.LinuxDo.SubjectHint)
 }
@@ -518,7 +518,7 @@ func TestUnbindUserAuthProviderRemovesProviderAndReturnsUpdatedProfile(t *testin
 	summaries, err := svc.GetProfileIdentitySummaries(context.Background(), 12, user)
 	require.NoError(t, err)
 	require.False(t, summaries.LinuxDo.Bound)
-	require.True(t, summaries.LinuxDo.CanBind)
+	require.False(t, summaries.LinuxDo.CanBind)
 }
 
 func TestGetProfileIdentitySummaries_HidesBindActionWhenProviderExplicitlyDisabled(t *testing.T) {
@@ -550,7 +550,7 @@ func TestGetProfileIdentitySummaries_HidesBindActionWhenProviderExplicitlyDisabl
 	require.Empty(t, summaries.LinuxDo.BindStartPath)
 }
 
-func TestGetProfileIdentitySummaries_UsesBindStartRoute(t *testing.T) {
+func TestGetProfileIdentitySummaries_DisablesThirdPartyBindStartRoutes(t *testing.T) {
 	repo := &mockUserRepo{
 		getByIDUser: &User{
 			ID:    16,
@@ -569,21 +569,12 @@ func TestGetProfileIdentitySummaries_UsesBindStartRoute(t *testing.T) {
 	summaries, err := svc.GetProfileIdentitySummaries(context.Background(), 16, repo.getByIDUser)
 
 	require.NoError(t, err)
-	require.Equal(
-		t,
-		"/api/v1/auth/oauth/linuxdo/bind/start?intent=bind_current_user&redirect=%2Fsettings%2Fprofile",
-		summaries.LinuxDo.BindStartPath,
-	)
-	require.Equal(
-		t,
-		"/api/v1/auth/oauth/oidc/bind/start?intent=bind_current_user&redirect=%2Fsettings%2Fprofile",
-		summaries.OIDC.BindStartPath,
-	)
-	require.Equal(
-		t,
-		"/api/v1/auth/oauth/wechat/bind/start?intent=bind_current_user&redirect=%2Fsettings%2Fprofile",
-		summaries.WeChat.BindStartPath,
-	)
+	require.False(t, summaries.LinuxDo.CanBind)
+	require.False(t, summaries.OIDC.CanBind)
+	require.False(t, summaries.WeChat.CanBind)
+	require.Empty(t, summaries.LinuxDo.BindStartPath)
+	require.Empty(t, summaries.OIDC.BindStartPath)
+	require.Empty(t, summaries.WeChat.BindStartPath)
 }
 
 func TestUpdateBalance_NilBillingCache_NoPanic(t *testing.T) {

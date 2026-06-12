@@ -10,7 +10,6 @@ import (
 // ProvideAdminHandlers creates the AdminHandlers struct
 func ProvideAdminHandlers(
 	dashboardHandler *admin.DashboardHandler,
-	userHandler *admin.UserHandler,
 	groupHandler *admin.GroupHandler,
 	accountHandler *admin.AccountHandler,
 	announcementHandler *admin.AnnouncementHandler,
@@ -21,14 +20,10 @@ func ProvideAdminHandlers(
 	geminiOAuthHandler *admin.GeminiOAuthHandler,
 	antigravityOAuthHandler *admin.AntigravityOAuthHandler,
 	proxyHandler *admin.ProxyHandler,
-	redeemHandler *admin.RedeemHandler,
-	promoHandler *admin.PromoHandler,
 	settingHandler *admin.SettingHandler,
 	opsHandler *admin.OpsHandler,
 	systemHandler *admin.SystemHandler,
-	subscriptionHandler *admin.SubscriptionHandler,
 	usageHandler *admin.UsageHandler,
-	userAttributeHandler *admin.UserAttributeHandler,
 	errorPassthroughHandler *admin.ErrorPassthroughHandler,
 	tlsFingerprintProfileHandler *admin.TLSFingerprintProfileHandler,
 	apiKeyHandler *admin.AdminAPIKeyHandler,
@@ -37,13 +32,10 @@ func ProvideAdminHandlers(
 	channelMonitorHandler *admin.ChannelMonitorHandler,
 	channelMonitorTemplateHandler *admin.ChannelMonitorRequestTemplateHandler,
 	contentModerationHandler *admin.ContentModerationHandler,
-	paymentHandler *admin.PaymentHandler,
-	affiliateHandler *admin.AffiliateHandler,
 	complianceHandler *admin.ComplianceHandler,
 ) *AdminHandlers {
 	return &AdminHandlers{
 		Dashboard:              dashboardHandler,
-		User:                   userHandler,
 		Group:                  groupHandler,
 		Account:                accountHandler,
 		Announcement:           announcementHandler,
@@ -54,14 +46,10 @@ func ProvideAdminHandlers(
 		GeminiOAuth:            geminiOAuthHandler,
 		AntigravityOAuth:       antigravityOAuthHandler,
 		Proxy:                  proxyHandler,
-		Redeem:                 redeemHandler,
-		Promo:                  promoHandler,
 		Setting:                settingHandler,
 		Ops:                    opsHandler,
 		System:                 systemHandler,
-		Subscription:           subscriptionHandler,
 		Usage:                  usageHandler,
-		UserAttribute:          userAttributeHandler,
 		ErrorPassthrough:       errorPassthroughHandler,
 		TLSFingerprintProfile:  tlsFingerprintProfileHandler,
 		APIKey:                 apiKeyHandler,
@@ -70,8 +58,6 @@ func ProvideAdminHandlers(
 		ChannelMonitor:         channelMonitorHandler,
 		ChannelMonitorTemplate: channelMonitorTemplateHandler,
 		ContentModeration:      contentModerationHandler,
-		Payment:                paymentHandler,
-		Affiliate:              affiliateHandler,
 		Compliance:             complianceHandler,
 	}
 }
@@ -89,8 +75,8 @@ func ProvideSettingHandler(settingService *service.SettingService, buildInfo Bui
 }
 
 // ProvideAdminSettingHandler creates admin.SettingHandler with notification template APIs.
-func ProvideAdminSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, userAttributeService *service.UserAttributeService, notificationEmailService *service.NotificationEmailService) *admin.SettingHandler {
-	h := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService, userAttributeService)
+func ProvideAdminSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, userAttributeService *service.UserAttributeService, notificationEmailService *service.NotificationEmailService) *admin.SettingHandler {
+	h := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, userAttributeService)
 	h.SetNotificationEmailService(notificationEmailService)
 	return h
 }
@@ -101,8 +87,6 @@ func ProvideHandlers(
 	userHandler *UserHandler,
 	apiKeyHandler *APIKeyHandler,
 	usageHandler *UsageHandler,
-	redeemHandler *RedeemHandler,
-	subscriptionHandler *SubscriptionHandler,
 	announcementHandler *AnnouncementHandler,
 	channelMonitorUserHandler *ChannelMonitorUserHandler,
 	adminHandlers *AdminHandlers,
@@ -110,8 +94,6 @@ func ProvideHandlers(
 	openaiGatewayHandler *OpenAIGatewayHandler,
 	settingHandler *SettingHandler,
 	totpHandler *TotpHandler,
-	paymentHandler *PaymentHandler,
-	paymentWebhookHandler *PaymentWebhookHandler,
 	availableChannelHandler *AvailableChannelHandler,
 	_ *service.IdempotencyCoordinator,
 	_ *service.IdempotencyCleanupService,
@@ -121,8 +103,6 @@ func ProvideHandlers(
 		User:             userHandler,
 		APIKey:           apiKeyHandler,
 		Usage:            usageHandler,
-		Redeem:           redeemHandler,
-		Subscription:     subscriptionHandler,
 		Announcement:     announcementHandler,
 		ChannelMonitor:   channelMonitorUserHandler,
 		Admin:            adminHandlers,
@@ -130,8 +110,6 @@ func ProvideHandlers(
 		OpenAIGateway:    openaiGatewayHandler,
 		Setting:          settingHandler,
 		Totp:             totpHandler,
-		Payment:          paymentHandler,
-		PaymentWebhook:   paymentWebhookHandler,
 		AvailableChannel: availableChannelHandler,
 	}
 }
@@ -143,21 +121,16 @@ var ProviderSet = wire.NewSet(
 	NewUserHandler,
 	NewAPIKeyHandler,
 	NewUsageHandler,
-	NewRedeemHandler,
-	NewSubscriptionHandler,
 	NewAnnouncementHandler,
 	NewChannelMonitorUserHandler,
 	NewGatewayHandler,
 	NewOpenAIGatewayHandler,
 	NewTotpHandler,
 	ProvideSettingHandler,
-	NewPaymentHandler,
-	NewPaymentWebhookHandler,
 	NewAvailableChannelHandler,
 
 	// Admin handlers
 	admin.NewDashboardHandler,
-	admin.NewUserHandler,
 	admin.NewGroupHandler,
 	admin.NewAccountHandler,
 	admin.NewAnnouncementHandler,
@@ -168,14 +141,10 @@ var ProviderSet = wire.NewSet(
 	admin.NewGeminiOAuthHandler,
 	admin.NewAntigravityOAuthHandler,
 	admin.NewProxyHandler,
-	admin.NewRedeemHandler,
-	admin.NewPromoHandler,
 	ProvideAdminSettingHandler,
 	admin.NewOpsHandler,
 	ProvideSystemHandler,
-	admin.NewSubscriptionHandler,
 	admin.NewUsageHandler,
-	admin.NewUserAttributeHandler,
 	admin.NewErrorPassthroughHandler,
 	admin.NewTLSFingerprintProfileHandler,
 	admin.NewAdminAPIKeyHandler,
@@ -184,8 +153,6 @@ var ProviderSet = wire.NewSet(
 	admin.NewChannelMonitorHandler,
 	admin.NewChannelMonitorRequestTemplateHandler,
 	admin.NewContentModerationHandler,
-	admin.NewPaymentHandler,
-	admin.NewAffiliateHandler,
 	admin.NewComplianceHandler,
 
 	// AdminHandlers and Handlers constructors

@@ -1290,7 +1290,7 @@
         <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini'].includes(
+            ['openai', 'anthropic'].includes(
               createForm.platform,
             )
           "
@@ -1375,10 +1375,10 @@
           </div>
         </div>
 
-        <!-- 无效请求兜底（仅 anthropic/antigravity 平台，且非订阅分组） -->
+        <!-- 无效请求兜底（仅 Anthropic 平台，且非订阅分组） -->
         <div
           v-if="
-            ['anthropic', 'antigravity'].includes(createForm.platform) &&
+            createForm.platform === 'anthropic' &&
             createForm.subscription_type !== 'subscription'
           "
           class="border-t pt-4"
@@ -2574,7 +2574,7 @@
         <!-- 账号过滤控制 (OpenAI/Antigravity/Anthropic/Gemini) -->
         <div
           v-if="
-            ['openai', 'antigravity', 'anthropic', 'gemini'].includes(
+            ['openai', 'anthropic'].includes(
               editForm.platform,
             )
           "
@@ -2659,10 +2659,10 @@
           </div>
         </div>
 
-        <!-- 无效请求兜底（仅 anthropic/antigravity 平台，且非订阅分组） -->
+        <!-- 无效请求兜底（仅 Anthropic 平台，且非订阅分组） -->
         <div
           v-if="
-            ['anthropic', 'antigravity'].includes(editForm.platform) &&
+            editForm.platform === 'anthropic' &&
             editForm.subscription_type !== 'subscription'
           "
           class="border-t pt-4"
@@ -3136,16 +3136,12 @@ const exclusiveOptions = computed(() => [
 const platformOptions = computed(() => [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
-  { value: "gemini", label: "Gemini" },
-  { value: "antigravity", label: "Antigravity" },
 ]);
 
 const platformFilterOptions = computed(() => [
   { value: "", label: t("admin.groups.allPlatforms") },
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
-  { value: "gemini", label: "Gemini" },
-  { value: "antigravity", label: "Antigravity" },
 ]);
 
 const editStatusOptions = computed(() => [
@@ -4234,13 +4230,13 @@ watch(
 watch(
   () => createForm.platform,
   (newVal) => {
-    if (!["anthropic", "antigravity"].includes(newVal)) {
+    if (newVal !== "anthropic") {
       createForm.fallback_group_id_on_invalid_request = null;
     }
     if (newVal !== "openai") {
       resetMessagesDispatchFormState(createForm);
     }
-    if (!["openai", "antigravity", "anthropic", "gemini"].includes(newVal)) {
+    if (!["openai", "anthropic"].includes(newVal)) {
       createForm.require_oauth_only = false;
       createForm.require_privacy_set = false;
     }
@@ -4252,13 +4248,13 @@ watch(
 watch(
   () => editForm.platform,
   (newVal) => {
-    if (!["anthropic", "antigravity"].includes(newVal)) {
+    if (newVal !== "anthropic") {
       editForm.fallback_group_id_on_invalid_request = null;
     }
     if (newVal !== "openai") {
       resetMessagesDispatchFormState(editForm);
     }
-    if (!["openai", "antigravity", "anthropic", "gemini"].includes(newVal)) {
+    if (!["openai", "anthropic"].includes(newVal)) {
       editForm.require_oauth_only = false;
       editForm.require_privacy_set = false;
     }
@@ -4272,7 +4268,7 @@ watch(
 watch(
   () => editForm.platform,
   (newVal) => {
-    if (!['anthropic', 'antigravity'].includes(newVal)) {
+    if (newVal !== 'anthropic') {
       editForm.fallback_group_id_on_invalid_request = null
     }
     if (newVal !== 'openai') {

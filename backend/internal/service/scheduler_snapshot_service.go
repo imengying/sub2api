@@ -637,22 +637,17 @@ func (s *SchedulerSnapshotService) loadAccountsFromDB(ctx context.Context, bucke
 	if s.accountRepo == nil {
 		return nil, ErrSchedulerCacheNotReady
 	}
-	groupID := bucket.GroupID
-	if s.isRunModeSimple() {
-		groupID = 0
-	}
+    groupID := bucket.GroupID
 
 	if useMixed {
 		platforms := []string{bucket.Platform, PlatformAntigravity}
 		var accounts []Account
 		var err error
-		if groupID > 0 {
-			accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatforms(ctx, groupID, platforms)
-		} else if s.isRunModeSimple() {
-			accounts, err = s.accountRepo.ListSchedulableByPlatforms(ctx, platforms)
-		} else {
-			accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatforms(ctx, platforms)
-		}
+        if groupID > 0 {
+            accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatforms(ctx, groupID, platforms)
+        } else {
+            accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatforms(ctx, platforms)
+        }
 		if err != nil {
 			return nil, err
 		}
@@ -669,10 +664,7 @@ func (s *SchedulerSnapshotService) loadAccountsFromDB(ctx context.Context, bucke
 	if groupID > 0 {
 		return s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, groupID, bucket.Platform)
 	}
-	if s.isRunModeSimple() {
-		return s.accountRepo.ListSchedulableByPlatform(ctx, bucket.Platform)
-	}
-	return s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, bucket.Platform)
+    return s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, bucket.Platform)
 }
 
 func (s *SchedulerSnapshotService) bucketFor(groupID *int64, platform string, mode string) SchedulerBucket {
@@ -684,20 +676,14 @@ func (s *SchedulerSnapshotService) bucketFor(groupID *int64, platform string, mo
 }
 
 func (s *SchedulerSnapshotService) normalizeGroupID(groupID *int64) int64 {
-	if s.isRunModeSimple() {
-		return 0
-	}
-	if groupID == nil || *groupID <= 0 {
+    if groupID == nil || *groupID <= 0 {
 		return 0
 	}
 	return *groupID
 }
 
 func (s *SchedulerSnapshotService) normalizeGroupIDs(groupIDs []int64) []int64 {
-	if s.isRunModeSimple() {
-		return []int64{0}
-	}
-	if len(groupIDs) == 0 {
+    if len(groupIDs) == 0 {
 		return []int64{0}
 	}
 	seen := make(map[int64]struct{}, len(groupIDs))
@@ -755,10 +741,6 @@ func (s *SchedulerSnapshotService) withFallbackTimeout(ctx context.Context) (con
 	return context.WithTimeout(ctx, timeout)
 }
 
-func (s *SchedulerSnapshotService) isRunModeSimple() bool {
-	return s.cfg != nil && s.cfg.RunMode == config.RunModeSimple
-}
-
 func (s *SchedulerSnapshotService) outboxPollInterval() time.Duration {
 	if s.cfg == nil {
 		return time.Second
@@ -792,9 +774,9 @@ func (s *SchedulerSnapshotService) defaultBuckets(ctx context.Context) ([]Schedu
 		}
 	}
 
-	if s.isRunModeSimple() || s.groupRepo == nil {
-		return dedupeBuckets(buckets), nil
-	}
+    if s.groupRepo == nil {
+        return dedupeBuckets(buckets), nil
+    }
 
 	groups, err := s.groupRepo.ListActive(ctx)
 	if err != nil {

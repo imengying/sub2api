@@ -26,7 +26,7 @@ type EmailOAuthIdentityInput struct {
 }
 
 func (s *AuthService) LoginOrRegisterVerifiedEmailOAuth(ctx context.Context, input EmailOAuthIdentityInput) (*TokenPair, *User, error) {
-	return s.loginOrRegisterVerifiedEmailOAuth(ctx, input, "", "")
+	return s.loginOrRegisterVerifiedEmailOAuth(ctx, input, "")
 }
 
 func (s *AuthService) LoginOrRegisterVerifiedEmailOAuthWithInvitation(
@@ -35,14 +35,13 @@ func (s *AuthService) LoginOrRegisterVerifiedEmailOAuthWithInvitation(
 	invitationCode string,
 	affiliateCode string,
 ) (*TokenPair, *User, error) {
-	return s.loginOrRegisterVerifiedEmailOAuth(ctx, input, invitationCode, affiliateCode)
+	return s.loginOrRegisterVerifiedEmailOAuth(ctx, input, invitationCode)
 }
 
 func (s *AuthService) loginOrRegisterVerifiedEmailOAuth(
 	ctx context.Context,
 	input EmailOAuthIdentityInput,
 	invitationCode string,
-	affiliateCode string,
 ) (*TokenPair, *User, error) {
 	if s == nil || s.userRepo == nil || s.entClient == nil {
 		return nil, nil, ErrServiceUnavailable
@@ -92,7 +91,7 @@ func (s *AuthService) loginOrRegisterVerifiedEmailOAuth(
 		user, err = s.userRepo.GetByEmail(ctx, email)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
-				user, err = s.createEmailOAuthUser(ctx, email, input.Username, providerType, invitationCode, affiliateCode)
+				user, err = s.createEmailOAuthUser(ctx, email, input.Username, providerType, invitationCode)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -141,7 +140,7 @@ func (s *AuthService) loginOrRegisterVerifiedEmailOAuth(
 	return tokenPair, user, nil
 }
 
-func (s *AuthService) createEmailOAuthUser(ctx context.Context, email, username, providerType, invitationCode, affiliateCode string) (*User, error) {
+func (s *AuthService) createEmailOAuthUser(ctx context.Context, email, username, providerType, invitationCode string) (*User, error) {
 	if s.settingService == nil || !s.settingService.IsRegistrationEnabled(ctx) {
 		return nil, ErrRegDisabled
 	}
@@ -191,7 +190,6 @@ func (s *AuthService) createEmailOAuthUser(ctx context.Context, email, username,
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 	// snapshot user × platform quota（fail-open）
 	_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
-	s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
 	if invitationRedeemCode != nil {
 		if err := s.useOAuthRegistrationInvitation(ctx, invitationRedeemCode.ID, user.ID); err != nil {
 			_ = s.RollbackOAuthEmailAccountCreation(ctx, user.ID, invitationCode)

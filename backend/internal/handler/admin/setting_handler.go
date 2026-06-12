@@ -60,21 +60,17 @@ type SettingHandler struct {
 	emailService             *service.EmailService
 	turnstileService         *service.TurnstileService
 	opsService               *service.OpsService
-	paymentConfigService     *service.PaymentConfigService
-	paymentService           *service.PaymentService
 	userAttributeService     *service.UserAttributeService
 	notificationEmailService *service.NotificationEmailService
 }
 
 // NewSettingHandler 创建系统设置处理器
-func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, userAttributeService *service.UserAttributeService) *SettingHandler {
+func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, userAttributeService *service.UserAttributeService) *SettingHandler {
 	return &SettingHandler{
 		settingService:       settingService,
 		emailService:         emailService,
 		turnstileService:     turnstileService,
 		opsService:           opsService,
-		paymentConfigService: paymentConfigService,
-		paymentService:       paymentService,
 		userAttributeService: userAttributeService,
 	}
 }
@@ -107,15 +103,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 			GroupID:      sub.GroupID,
 			ValidityDays: sub.ValidityDays,
 		})
-	}
-
-	// Load payment config
-	var paymentCfg *service.PaymentConfig
-	if h.paymentConfigService != nil {
-		paymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
-	}
-	if paymentCfg == nil {
-		paymentCfg = &service.PaymentConfig{}
 	}
 
 	payload := dto.SystemSettings{
@@ -228,10 +215,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DefaultConcurrency:                     settings.DefaultConcurrency,
 		DefaultBalance:                         settings.DefaultBalance,
 		RiskControlEnabled:                     settings.RiskControlEnabled,
-		AffiliateRebateRate:                    settings.AffiliateRebateRate,
-		AffiliateRebateFreezeHours:             settings.AffiliateRebateFreezeHours,
-		AffiliateRebateDurationDays:            settings.AffiliateRebateDurationDays,
-		AffiliateRebatePerInviteeCap:           settings.AffiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    settings.EnableModelFallback,
@@ -258,10 +241,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		OpenAICodexUserAgent:                   settings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       settings.OpenAIAllowClaudeCodeCodexPlugin,
 		WebSearchEmulationEnabled:              settings.WebSearchEmulationEnabled,
-		PaymentVisibleMethodAlipaySource:       settings.PaymentVisibleMethodAlipaySource,
-		PaymentVisibleMethodWxpaySource:        settings.PaymentVisibleMethodWxpaySource,
-		PaymentVisibleMethodAlipayEnabled:      settings.PaymentVisibleMethodAlipayEnabled,
-		PaymentVisibleMethodWxpayEnabled:       settings.PaymentVisibleMethodWxpayEnabled,
 		OpenAIAdvancedSchedulerEnabled:         settings.OpenAIAdvancedSchedulerEnabled,
 		BalanceLowNotifyEnabled:                settings.BalanceLowNotifyEnabled,
 		BalanceLowNotifyThreshold:              settings.BalanceLowNotifyThreshold,
@@ -269,34 +248,11 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		SubscriptionExpiryNotifyEnabled:        settings.SubscriptionExpiryNotifyEnabled,
 		AccountQuotaNotifyEnabled:              settings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(settings.AccountQuotaNotifyEmails),
-		PaymentEnabled:                         paymentCfg.Enabled,
-		PaymentMinAmount:                       paymentCfg.MinAmount,
-		PaymentMaxAmount:                       paymentCfg.MaxAmount,
-		PaymentDailyLimit:                      paymentCfg.DailyLimit,
-		PaymentOrderTimeoutMin:                 paymentCfg.OrderTimeoutMin,
-		PaymentMaxPendingOrders:                paymentCfg.MaxPendingOrders,
-		PaymentEnabledTypes:                    paymentCfg.EnabledTypes,
-		PaymentBalanceDisabled:                 paymentCfg.BalanceDisabled,
-		PaymentBalanceRechargeMultiplier:       paymentCfg.BalanceRechargeMultiplier,
-		PaymentRechargeFeeRate:                 paymentCfg.RechargeFeeRate,
-		PaymentLoadBalanceStrat:                paymentCfg.LoadBalanceStrategy,
-		PaymentProductNamePrefix:               paymentCfg.ProductNamePrefix,
-		PaymentProductNameSuffix:               paymentCfg.ProductNameSuffix,
-		PaymentHelpImageURL:                    paymentCfg.HelpImageURL,
-		PaymentHelpText:                        paymentCfg.HelpText,
-		PaymentCancelRateLimitEnabled:          paymentCfg.CancelRateLimitEnabled,
-		PaymentCancelRateLimitMax:              paymentCfg.CancelRateLimitMax,
-		PaymentCancelRateLimitWindow:           paymentCfg.CancelRateLimitWindow,
-		PaymentCancelRateLimitUnit:             paymentCfg.CancelRateLimitUnit,
-		PaymentCancelRateLimitMode:             paymentCfg.CancelRateLimitMode,
-		PaymentAlipayForceQRCode:               paymentCfg.AlipayForceQRCode,
 
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 
 		AvailableChannelsEnabled: settings.AvailableChannelsEnabled,
-
-		AffiliateEnabled: settings.AffiliateEnabled,
 
 		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,
 	}
@@ -510,10 +466,6 @@ type UpdateSettingsRequest struct {
 	// 默认配置
 	DefaultConcurrency                        int                               `json:"default_concurrency"`
 	DefaultBalance                            float64                           `json:"default_balance"`
-	AffiliateRebateRate                       *float64                          `json:"affiliate_rebate_rate"`
-	AffiliateRebateFreezeHours                *int                              `json:"affiliate_rebate_freeze_hours"`
-	AffiliateRebateDurationDays               *int                              `json:"affiliate_rebate_duration_days"`
-	AffiliateRebatePerInviteeCap              *float64                          `json:"affiliate_rebate_per_invitee_cap"`
 	DefaultUserRPMLimit                       int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                      []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
 	AuthSourceDefaultEmailBalance             *float64                          `json:"auth_source_default_email_balance"`
@@ -589,12 +541,6 @@ type UpdateSettingsRequest struct {
 	OpenAICodexUserAgent               *string `json:"openai_codex_user_agent"`
 	OpenAIAllowClaudeCodeCodexPlugin   *bool   `json:"openai_allow_claude_code_codex_plugin"`
 
-	// Payment visible method routing
-	PaymentVisibleMethodAlipaySource  *string `json:"payment_visible_method_alipay_source"`
-	PaymentVisibleMethodWxpaySource   *string `json:"payment_visible_method_wxpay_source"`
-	PaymentVisibleMethodAlipayEnabled *bool   `json:"payment_visible_method_alipay_enabled"`
-	PaymentVisibleMethodWxpayEnabled  *bool   `json:"payment_visible_method_wxpay_enabled"`
-
 	// OpenAI account scheduling
 	OpenAIAdvancedSchedulerEnabled *bool `json:"openai_advanced_scheduler_enabled"`
 
@@ -606,42 +552,12 @@ type UpdateSettingsRequest struct {
 	AccountQuotaNotifyEnabled       *bool                   `json:"account_quota_notify_enabled"`
 	AccountQuotaNotifyEmails        *[]dto.NotifyEmailEntry `json:"account_quota_notify_emails"`
 
-	// Payment configuration (integrated into settings, full replace)
-	PaymentEnabled                   *bool    `json:"payment_enabled"`
-	PaymentMinAmount                 *float64 `json:"payment_min_amount"`
-	PaymentMaxAmount                 *float64 `json:"payment_max_amount"`
-	PaymentDailyLimit                *float64 `json:"payment_daily_limit"`
-	PaymentOrderTimeoutMin           *int     `json:"payment_order_timeout_minutes"`
-	PaymentMaxPendingOrders          *int     `json:"payment_max_pending_orders"`
-	PaymentEnabledTypes              []string `json:"payment_enabled_types"`
-	PaymentBalanceDisabled           *bool    `json:"payment_balance_disabled"`
-	PaymentBalanceRechargeMultiplier *float64 `json:"payment_balance_recharge_multiplier"`
-	PaymentRechargeFeeRate           *float64 `json:"payment_recharge_fee_rate"`
-	PaymentLoadBalanceStrat          *string  `json:"payment_load_balance_strategy"`
-	PaymentProductNamePrefix         *string  `json:"payment_product_name_prefix"`
-	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
-	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
-	PaymentHelpText                  *string  `json:"payment_help_text"`
-
-	// Cancel rate limit
-	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
-	PaymentCancelRateLimitMax     *int    `json:"payment_cancel_rate_limit_max"`
-	PaymentCancelRateLimitWindow  *int    `json:"payment_cancel_rate_limit_window"`
-	PaymentCancelRateLimitUnit    *string `json:"payment_cancel_rate_limit_unit"`
-	PaymentCancelRateLimitMode    *string `json:"payment_cancel_rate_limit_window_mode"`
-
-	// Force Alipay mobile clients to use QR code payment instead of mobile redirect
-	PaymentAlipayForceQRCode *bool `json:"payment_alipay_force_qrcode"`
-
 	// Channel Monitor feature switch
 	ChannelMonitorEnabled                *bool `json:"channel_monitor_enabled"`
 	ChannelMonitorDefaultIntervalSeconds *int  `json:"channel_monitor_default_interval_seconds"`
 
 	// Available Channels feature switch (user-facing)
 	AvailableChannelsEnabled *bool `json:"available_channels_enabled"`
-
-	// Affiliate (邀请返利) feature switch
-	AffiliateEnabled *bool `json:"affiliate_enabled"`
 
 	// 风控中心功能开关
 	RiskControlEnabled *bool `json:"risk_control_enabled"`
@@ -691,43 +607,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	if req.DefaultBalance < 0 {
 		req.DefaultBalance = 0
 	}
-	affiliateRebateRate := previousSettings.AffiliateRebateRate
-	if req.AffiliateRebateRate != nil {
-		affiliateRebateRate = *req.AffiliateRebateRate
-	}
-	if affiliateRebateRate < service.AffiliateRebateRateMin {
-		affiliateRebateRate = service.AffiliateRebateRateMin
-	}
-	if affiliateRebateRate > service.AffiliateRebateRateMax {
-		affiliateRebateRate = service.AffiliateRebateRateMax
-	}
-	affiliateRebateFreezeHours := previousSettings.AffiliateRebateFreezeHours
-	if req.AffiliateRebateFreezeHours != nil {
-		affiliateRebateFreezeHours = *req.AffiliateRebateFreezeHours
-	}
-	if affiliateRebateFreezeHours < 0 {
-		affiliateRebateFreezeHours = service.AffiliateRebateFreezeHoursDefault
-	}
-	if affiliateRebateFreezeHours > service.AffiliateRebateFreezeHoursMax {
-		affiliateRebateFreezeHours = service.AffiliateRebateFreezeHoursMax
-	}
-	affiliateRebateDurationDays := previousSettings.AffiliateRebateDurationDays
-	if req.AffiliateRebateDurationDays != nil {
-		affiliateRebateDurationDays = *req.AffiliateRebateDurationDays
-	}
-	if affiliateRebateDurationDays < 0 {
-		affiliateRebateDurationDays = service.AffiliateRebateDurationDaysDefault
-	}
-	if affiliateRebateDurationDays > service.AffiliateRebateDurationDaysMax {
-		affiliateRebateDurationDays = service.AffiliateRebateDurationDaysMax
-	}
-	affiliateRebatePerInviteeCap := previousSettings.AffiliateRebatePerInviteeCap
-	if req.AffiliateRebatePerInviteeCap != nil {
-		affiliateRebatePerInviteeCap = *req.AffiliateRebatePerInviteeCap
-	}
-	if affiliateRebatePerInviteeCap < 0 {
-		affiliateRebatePerInviteeCap = service.AffiliateRebatePerInviteeCapDefault
-	}
 	// 通用表格配置：兼容旧客户端未传字段时保留当前值。
 	if req.TableDefaultPageSize <= 0 {
 		req.TableDefaultPageSize = previousSettings.TableDefaultPageSize
@@ -740,26 +619,22 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	req.SMTPPassword = strings.TrimSpace(req.SMTPPassword)
 	req.SMTPFrom = strings.TrimSpace(req.SMTPFrom)
 	req.SMTPFromName = strings.TrimSpace(req.SMTPFromName)
-	if req.SMTPPort <= 0 {
-		req.SMTPPort = 587
-	}
+	// SMTP settings are no longer managed by the general admin settings page.
+	// Preserve the stored configuration on this update path so saving unrelated
+	// settings cannot clear or alter mail delivery configuration.
+	req.SMTPHost = previousSettings.SMTPHost
+	req.SMTPPort = previousSettings.SMTPPort
+	req.SMTPUsername = previousSettings.SMTPUsername
+	req.SMTPPassword = previousSettings.SMTPPassword
+	req.SMTPFrom = previousSettings.SMTPFrom
+	req.SMTPFromName = previousSettings.SMTPFromName
+	req.SMTPUseTLS = previousSettings.SMTPUseTLS
 	req.DefaultSubscriptions = normalizeDefaultSubscriptions(req.DefaultSubscriptions)
 	req.AuthSourceDefaultEmailSubscriptions = normalizeOptionalDefaultSubscriptions(req.AuthSourceDefaultEmailSubscriptions)
 	req.AuthSourceDefaultLinuxDoSubscriptions = normalizeOptionalDefaultSubscriptions(req.AuthSourceDefaultLinuxDoSubscriptions)
 	req.AuthSourceDefaultOIDCSubscriptions = normalizeOptionalDefaultSubscriptions(req.AuthSourceDefaultOIDCSubscriptions)
 	req.AuthSourceDefaultWeChatSubscriptions = normalizeOptionalDefaultSubscriptions(req.AuthSourceDefaultWeChatSubscriptions)
 	req.AuthSourceDefaultDingTalkSubscriptions = normalizeOptionalDefaultSubscriptions(req.AuthSourceDefaultDingTalkSubscriptions)
-
-	// SMTP 配置保护：如果请求中 smtp_host 为空但数据库中已有配置，则保留已有 SMTP 配置
-	// 防止前端加载设置失败时空表单覆盖已保存的 SMTP 配置
-	if req.SMTPHost == "" && previousSettings.SMTPHost != "" {
-		req.SMTPHost = previousSettings.SMTPHost
-		req.SMTPPort = previousSettings.SMTPPort
-		req.SMTPUsername = previousSettings.SMTPUsername
-		req.SMTPFrom = previousSettings.SMTPFrom
-		req.SMTPFromName = previousSettings.SMTPFromName
-		req.SMTPUseTLS = previousSettings.SMTPUseTLS
-	}
 
 	// Turnstile 参数验证
 	if req.TurnstileEnabled {
@@ -1578,10 +1453,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		CustomEndpoints:                        customEndpointsJSON,
 		DefaultConcurrency:                     req.DefaultConcurrency,
 		DefaultBalance:                         req.DefaultBalance,
-		AffiliateRebateRate:                    affiliateRebateRate,
-		AffiliateRebateFreezeHours:             affiliateRebateFreezeHours,
-		AffiliateRebateDurationDays:            affiliateRebateDurationDays,
-		AffiliateRebatePerInviteeCap:           affiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    req.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    req.EnableModelFallback,
@@ -1673,30 +1544,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.OpenAIAllowClaudeCodeCodexPlugin
 		}(),
-		PaymentVisibleMethodAlipaySource: func() string {
-			if req.PaymentVisibleMethodAlipaySource != nil {
-				return strings.TrimSpace(*req.PaymentVisibleMethodAlipaySource)
-			}
-			return previousSettings.PaymentVisibleMethodAlipaySource
-		}(),
-		PaymentVisibleMethodWxpaySource: func() string {
-			if req.PaymentVisibleMethodWxpaySource != nil {
-				return strings.TrimSpace(*req.PaymentVisibleMethodWxpaySource)
-			}
-			return previousSettings.PaymentVisibleMethodWxpaySource
-		}(),
-		PaymentVisibleMethodAlipayEnabled: func() bool {
-			if req.PaymentVisibleMethodAlipayEnabled != nil {
-				return *req.PaymentVisibleMethodAlipayEnabled
-			}
-			return previousSettings.PaymentVisibleMethodAlipayEnabled
-		}(),
-		PaymentVisibleMethodWxpayEnabled: func() bool {
-			if req.PaymentVisibleMethodWxpayEnabled != nil {
-				return *req.PaymentVisibleMethodWxpayEnabled
-			}
-			return previousSettings.PaymentVisibleMethodWxpayEnabled
-		}(),
 		OpenAIAdvancedSchedulerEnabled: func() bool {
 			if req.OpenAIAdvancedSchedulerEnabled != nil {
 				return *req.OpenAIAdvancedSchedulerEnabled
@@ -1756,12 +1603,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.AvailableChannelsEnabled
 			}
 			return previousSettings.AvailableChannelsEnabled
-		}(),
-		AffiliateEnabled: func() bool {
-			if req.AffiliateEnabled != nil {
-				return *req.AffiliateEnabled
-			}
-			return previousSettings.AffiliateEnabled
 		}(),
 		RiskControlEnabled: func() bool {
 			if req.RiskControlEnabled != nil {
@@ -1845,42 +1686,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
-	// Update payment configuration (integrated into system settings).
-	// Skip if no payment fields were provided (prevents accidental wipe).
-	if h.paymentConfigService != nil && hasPaymentFields(req) {
-		paymentReq := service.UpdatePaymentConfigRequest{
-			Enabled:                   req.PaymentEnabled,
-			MinAmount:                 req.PaymentMinAmount,
-			MaxAmount:                 req.PaymentMaxAmount,
-			DailyLimit:                req.PaymentDailyLimit,
-			OrderTimeoutMin:           req.PaymentOrderTimeoutMin,
-			MaxPendingOrders:          req.PaymentMaxPendingOrders,
-			EnabledTypes:              req.PaymentEnabledTypes,
-			BalanceDisabled:           req.PaymentBalanceDisabled,
-			BalanceRechargeMultiplier: req.PaymentBalanceRechargeMultiplier,
-			RechargeFeeRate:           req.PaymentRechargeFeeRate,
-			LoadBalanceStrategy:       req.PaymentLoadBalanceStrat,
-			ProductNamePrefix:         req.PaymentProductNamePrefix,
-			ProductNameSuffix:         req.PaymentProductNameSuffix,
-			HelpImageURL:              req.PaymentHelpImageURL,
-			HelpText:                  req.PaymentHelpText,
-			CancelRateLimitEnabled:    req.PaymentCancelRateLimitEnabled,
-			CancelRateLimitMax:        req.PaymentCancelRateLimitMax,
-			CancelRateLimitWindow:     req.PaymentCancelRateLimitWindow,
-			CancelRateLimitUnit:       req.PaymentCancelRateLimitUnit,
-			CancelRateLimitMode:       req.PaymentCancelRateLimitMode,
-			AlipayForceQRCode:         req.PaymentAlipayForceQRCode,
-		}
-		if err := h.paymentConfigService.UpdatePaymentConfig(c.Request.Context(), paymentReq); err != nil {
-			response.ErrorFrom(c, err)
-			return
-		}
-		// Refresh in-memory provider registry so config changes take effect immediately
-		if h.paymentService != nil {
-			h.paymentService.RefreshProviders(c.Request.Context())
-		}
-	}
-
 	h.auditSettingsUpdate(c, previousSettings, settings, previousAuthSourceDefaults, authSourceDefaults, req)
 
 	// 重新获取设置返回
@@ -1901,15 +1706,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			GroupID:      sub.GroupID,
 			ValidityDays: sub.ValidityDays,
 		})
-	}
-
-	// Reload payment config for response
-	var updatedPaymentCfg *service.PaymentConfig
-	if h.paymentConfigService != nil {
-		updatedPaymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
-	}
-	if updatedPaymentCfg == nil {
-		updatedPaymentCfg = &service.PaymentConfig{}
 	}
 
 	payload := dto.SystemSettings{
@@ -2021,10 +1817,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		CustomEndpoints:                        dto.ParseCustomEndpoints(updatedSettings.CustomEndpoints),
 		DefaultConcurrency:                     updatedSettings.DefaultConcurrency,
 		DefaultBalance:                         updatedSettings.DefaultBalance,
-		AffiliateRebateRate:                    updatedSettings.AffiliateRebateRate,
-		AffiliateRebateFreezeHours:             updatedSettings.AffiliateRebateFreezeHours,
-		AffiliateRebateDurationDays:            updatedSettings.AffiliateRebateDurationDays,
-		AffiliateRebatePerInviteeCap:           updatedSettings.AffiliateRebatePerInviteeCap,
 		DefaultUserRPMLimit:                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,
@@ -2050,10 +1842,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AntigravityUserAgentVersion:            updatedSettings.AntigravityUserAgentVersion,
 		OpenAICodexUserAgent:                   updatedSettings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       updatedSettings.OpenAIAllowClaudeCodeCodexPlugin,
-		PaymentVisibleMethodAlipaySource:       updatedSettings.PaymentVisibleMethodAlipaySource,
-		PaymentVisibleMethodWxpaySource:        updatedSettings.PaymentVisibleMethodWxpaySource,
-		PaymentVisibleMethodAlipayEnabled:      updatedSettings.PaymentVisibleMethodAlipayEnabled,
-		PaymentVisibleMethodWxpayEnabled:       updatedSettings.PaymentVisibleMethodWxpayEnabled,
 		OpenAIAdvancedSchedulerEnabled:         updatedSettings.OpenAIAdvancedSchedulerEnabled,
 		BalanceLowNotifyEnabled:                updatedSettings.BalanceLowNotifyEnabled,
 		BalanceLowNotifyThreshold:              updatedSettings.BalanceLowNotifyThreshold,
@@ -2061,34 +1849,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SubscriptionExpiryNotifyEnabled:        updatedSettings.SubscriptionExpiryNotifyEnabled,
 		AccountQuotaNotifyEnabled:              updatedSettings.AccountQuotaNotifyEnabled,
 		AccountQuotaNotifyEmails:               dto.NotifyEmailEntriesFromService(updatedSettings.AccountQuotaNotifyEmails),
-		PaymentEnabled:                         updatedPaymentCfg.Enabled,
-		PaymentMinAmount:                       updatedPaymentCfg.MinAmount,
-		PaymentMaxAmount:                       updatedPaymentCfg.MaxAmount,
-		PaymentDailyLimit:                      updatedPaymentCfg.DailyLimit,
-		PaymentOrderTimeoutMin:                 updatedPaymentCfg.OrderTimeoutMin,
-		PaymentMaxPendingOrders:                updatedPaymentCfg.MaxPendingOrders,
-		PaymentEnabledTypes:                    updatedPaymentCfg.EnabledTypes,
-		PaymentBalanceDisabled:                 updatedPaymentCfg.BalanceDisabled,
-		PaymentBalanceRechargeMultiplier:       updatedPaymentCfg.BalanceRechargeMultiplier,
-		PaymentRechargeFeeRate:                 updatedPaymentCfg.RechargeFeeRate,
-		PaymentLoadBalanceStrat:                updatedPaymentCfg.LoadBalanceStrategy,
-		PaymentProductNamePrefix:               updatedPaymentCfg.ProductNamePrefix,
-		PaymentProductNameSuffix:               updatedPaymentCfg.ProductNameSuffix,
-		PaymentHelpImageURL:                    updatedPaymentCfg.HelpImageURL,
-		PaymentHelpText:                        updatedPaymentCfg.HelpText,
-		PaymentCancelRateLimitEnabled:          updatedPaymentCfg.CancelRateLimitEnabled,
-		PaymentCancelRateLimitMax:              updatedPaymentCfg.CancelRateLimitMax,
-		PaymentCancelRateLimitWindow:           updatedPaymentCfg.CancelRateLimitWindow,
-		PaymentCancelRateLimitUnit:             updatedPaymentCfg.CancelRateLimitUnit,
-		PaymentCancelRateLimitMode:             updatedPaymentCfg.CancelRateLimitMode,
-		PaymentAlipayForceQRCode:               updatedPaymentCfg.AlipayForceQRCode,
-
 		ChannelMonitorEnabled:                updatedSettings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
 
 		AvailableChannelsEnabled: updatedSettings.AvailableChannelsEnabled,
-
-		AffiliateEnabled: updatedSettings.AffiliateEnabled,
 
 		RiskControlEnabled:         updatedSettings.RiskControlEnabled,
 		AllowUserViewErrorRequests: updatedSettings.AllowUserViewErrorRequests,
@@ -2108,7 +1872,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	response.Success(c, systemSettingsResponseData(payload, updatedAuthSourceDefaults))
 }
 
-// hasPaymentFields returns true if any payment-related field was explicitly provided.
 // mapDingTalkValidateError maps ValidateDingTalkConfig errors to machine-readable reason codes.
 func mapDingTalkValidateError(err error) string {
 	switch {
@@ -2119,20 +1882,6 @@ func mapDingTalkValidateError(err error) string {
 	default:
 		return "dingtalk_corp_config_invalid"
 	}
-}
-
-func hasPaymentFields(req UpdateSettingsRequest) bool {
-	return req.PaymentEnabled != nil || req.PaymentMinAmount != nil ||
-		req.PaymentMaxAmount != nil || req.PaymentDailyLimit != nil ||
-		req.PaymentOrderTimeoutMin != nil || req.PaymentMaxPendingOrders != nil ||
-		req.PaymentEnabledTypes != nil || req.PaymentBalanceDisabled != nil ||
-		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentRechargeFeeRate != nil ||
-		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
-		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
-		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
-		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
-		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
-		req.PaymentAlipayForceQRCode != nil
 }
 
 func (h *SettingHandler) auditSettingsUpdate(c *gin.Context, before *service.SystemSettings, after *service.SystemSettings, beforeAuthSourceDefaults *service.AuthSourceDefaultSettings, afterAuthSourceDefaults *service.AuthSourceDefaultSettings, req UpdateSettingsRequest) {
@@ -2421,18 +2170,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.DefaultBalance != after.DefaultBalance {
 		changed = append(changed, "default_balance")
 	}
-	if before.AffiliateRebateRate != after.AffiliateRebateRate {
-		changed = append(changed, "affiliate_rebate_rate")
-	}
-	if before.AffiliateRebateFreezeHours != after.AffiliateRebateFreezeHours {
-		changed = append(changed, "affiliate_rebate_freeze_hours")
-	}
-	if before.AffiliateRebateDurationDays != after.AffiliateRebateDurationDays {
-		changed = append(changed, "affiliate_rebate_duration_days")
-	}
-	if before.AffiliateRebatePerInviteeCap != after.AffiliateRebatePerInviteeCap {
-		changed = append(changed, "affiliate_rebate_per_invitee_cap")
-	}
 	if !equalDefaultSubscriptions(before.DefaultSubscriptions, after.DefaultSubscriptions) {
 		changed = append(changed, "default_subscriptions")
 	}
@@ -2523,18 +2260,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.OpenAIAllowClaudeCodeCodexPlugin != after.OpenAIAllowClaudeCodeCodexPlugin {
 		changed = append(changed, "openai_allow_claude_code_codex_plugin")
 	}
-	if before.PaymentVisibleMethodAlipaySource != after.PaymentVisibleMethodAlipaySource {
-		changed = append(changed, "payment_visible_method_alipay_source")
-	}
-	if before.PaymentVisibleMethodWxpaySource != after.PaymentVisibleMethodWxpaySource {
-		changed = append(changed, "payment_visible_method_wxpay_source")
-	}
-	if before.PaymentVisibleMethodAlipayEnabled != after.PaymentVisibleMethodAlipayEnabled {
-		changed = append(changed, "payment_visible_method_alipay_enabled")
-	}
-	if before.PaymentVisibleMethodWxpayEnabled != after.PaymentVisibleMethodWxpayEnabled {
-		changed = append(changed, "payment_visible_method_wxpay_enabled")
-	}
 	if before.OpenAIAdvancedSchedulerEnabled != after.OpenAIAdvancedSchedulerEnabled {
 		changed = append(changed, "openai_advanced_scheduler_enabled")
 	}
@@ -2565,9 +2290,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AvailableChannelsEnabled != after.AvailableChannelsEnabled {
 		changed = append(changed, "available_channels_enabled")
-	}
-	if before.AffiliateEnabled != after.AffiliateEnabled {
-		changed = append(changed, "affiliate_enabled")
 	}
 	if before.RiskControlEnabled != after.RiskControlEnabled {
 		changed = append(changed, "risk_control_enabled")

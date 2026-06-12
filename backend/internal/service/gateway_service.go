@@ -2380,13 +2380,11 @@ func (s *GatewayService) listSchedulableAccounts(ctx context.Context, groupID *i
 		platforms := []string{platform, PlatformAntigravity}
 		var accounts []Account
 		var err error
-		if groupID != nil {
-			accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatforms(ctx, *groupID, platforms)
-		} else if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
-			accounts, err = s.accountRepo.ListSchedulableByPlatforms(ctx, platforms)
-		} else {
-			accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatforms(ctx, platforms)
-		}
+        if groupID != nil {
+            accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatforms(ctx, *groupID, platforms)
+        } else {
+            accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatforms(ctx, platforms)
+        }
 		if err != nil {
 			slog.Debug("account_scheduling_list_failed",
 				"group_id", derefGroupID(groupID),
@@ -2422,11 +2420,9 @@ func (s *GatewayService) listSchedulableAccounts(ctx context.Context, groupID *i
 
 	var accounts []Account
 	var err error
-	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
-		accounts, err = s.accountRepo.ListSchedulableByPlatform(ctx, platform)
-	} else if groupID != nil {
-		accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, platform)
-		// 分组内无账号则返回空列表，由上层处理错误，不再回退到全平台查询
+    if groupID != nil {
+        accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, platform)
+        // 分组内无账号则返回空列表，由上层处理错误，不再回退到全平台查询
 	} else {
 		accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, platform)
 	}
@@ -8974,14 +8970,7 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 		)
 	}
 
-	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
-		writeUsageLogBestEffort(ctx, s.usageLogRepo, usageLog, "service.gateway")
-		logger.LegacyPrintf("service.gateway", "[SIMPLE MODE] Usage recorded (not billed): user=%d, tokens=%d", usageLog.UserID, usageLog.TotalTokens())
-		s.deferredService.ScheduleLastUsedUpdate(account.ID)
-		return nil
-	}
-
-	// 配额平台由 handler 在请求 ctx 内经 QuotaPlatform() 算定并通过 input 传入；
+    // 配额平台由 handler 在请求 ctx 内经 QuotaPlatform() 算定并通过 input 传入；
 	// 后扣运行在 worker 池的 background ctx 上，无法再从 ctx 取 ForcePlatform。
 	// 缺省（未设置）时回退到分组平台，保持对其它调用方的兼容。
 	quotaPlatform := input.QuotaPlatform

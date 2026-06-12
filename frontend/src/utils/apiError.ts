@@ -50,7 +50,7 @@ type TranslateWithExistsFn = TranslateFn & { te?: (key: string) => boolean }
 
 /**
  * Translate a value via i18n if a matching key exists, otherwise return the original.
- * Example: "certSerial" → t('admin.settings.payment.field_certSerial') → "证书序列号".
+ * Example: "certSerial" → t('admin.settings.field_certSerial') → "证书序列号".
  */
 function tryTranslate(t: TranslateFn, key: string, fallback: string): string {
   const translated = t(key)
@@ -68,12 +68,12 @@ function tryTranslate(t: TranslateFn, key: string, fallback: string): string {
 function localizeMetadata(metadata: Record<string, unknown>, t: TranslateFn): Record<string, unknown> {
   const out: Record<string, unknown> = { ...metadata }
   if (typeof out.key === 'string') {
-    out.key = tryTranslate(t, `admin.settings.payment.field_${out.key}`, out.key)
+    out.key = tryTranslate(t, `admin.settings.field_${out.key}`, out.key)
   }
   if (typeof out.keys === 'string') {
     out.keys = out.keys
       .split('/')
-      .map(k => tryTranslate(t, `admin.settings.payment.field_${k}`, k))
+      .map(k => tryTranslate(t, `admin.settings.field_${k}`, k))
       .join(' / ')
   }
   return out
@@ -89,7 +89,7 @@ function localizeMetadata(metadata: Record<string, unknown>, t: TranslateFn): Re
  *
  * @param err      - The caught error
  * @param t        - Vue i18n translate function
- * @param namespace- i18n key prefix, e.g. "payment.errors"
+ * @param namespace- i18n key prefix, e.g. "errors"
  * @param fallback - Fallback key or plain string if no localized mapping exists
  */
 export function extractI18nErrorMessage(

@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	dbuser "github.com/Wei-Shaw/sub2api/ent/user"
@@ -131,21 +130,12 @@ func TestEmailOAuthCallbackExistingEmailLogsInWhenInvitationEnabled(t *testing.T
 }
 
 func TestEmailOAuthCallbackCreatesPasswordRegistrationSessionForNewEmail(t *testing.T) {
-	affiliateRepo := newOAuthEmailAffiliateRepoStub(map[string]int64{"AFF123": 1001})
-	handler, client := newOAuthPendingFlowTestHandlerWithDependencies(t, oauthPendingFlowTestHandlerOptions{
-		settingValues: map[string]string{
-			service.SettingKeyAffiliateEnabled: "true",
-		},
-		affiliateFactory: func(_ *dbent.Client, settingSvc *service.SettingService) *service.AffiliateService {
-			return service.NewAffiliateService(affiliateRepo, settingSvc, nil, nil)
-		},
-	})
+	handler, client := newOAuthPendingFlowTestHandler(t, false)
 	ctx := context.Background()
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/oauth/github/callback", nil)
-	req.AddCookie(&http.Cookie{Name: emailOAuthAffiliateCookie, Value: encodeCookieValue("AFF123")})
 	c.Request = req
 
 	handler.emailOAuthCallbackWithProfile(c, "github", config.EmailOAuthProviderConfig{
@@ -166,13 +156,11 @@ func TestEmailOAuthCallbackCreatesPasswordRegistrationSessionForNewEmail(t *test
 	userCount, err := client.User.Query().Where(dbuser.EmailEQ("aff-user@example.com")).Count(ctx)
 	require.NoError(t, err)
 	require.Zero(t, userCount)
-	require.Empty(t, affiliateRepo.ensureUserIDs)
-	require.Empty(t, affiliateRepo.bindCalls)
 
 	session, err := client.PendingAuthSession.Query().Only(ctx)
 	require.NoError(t, err)
 	require.Equal(t, "aff-user@example.com", session.ResolvedEmail)
-	require.Equal(t, "AFF123", pendingSessionStringValue(session.UpstreamIdentityClaims, "aff_code"))
+	require.Empty(t, pendingSessionStringValue(session.UpstreamIdentityClaims, "aff_code"))
 
 	completion, ok := readCompletionResponse(session.LocalFlowState)
 	require.True(t, ok)
@@ -184,17 +172,8 @@ func TestEmailOAuthCallbackCreatesPasswordRegistrationSessionForNewEmail(t *test
 	require.Equal(t, "aff-user@example.com", completion["resolved_email"])
 }
 
-func TestCompleteEmailOAuthRegistrationUsesAffiliateCodeFromPendingSession(t *testing.T) {
-	affiliateRepo := newOAuthEmailAffiliateRepoStub(map[string]int64{"AFF456": 2002})
-	handler, client := newOAuthPendingFlowTestHandlerWithDependencies(t, oauthPendingFlowTestHandlerOptions{
-		invitationEnabled: true,
-		settingValues: map[string]string{
-			service.SettingKeyAffiliateEnabled: "true",
-		},
-		affiliateFactory: func(_ *dbent.Client, settingSvc *service.SettingService) *service.AffiliateService {
-			return service.NewAffiliateService(affiliateRepo, settingSvc, nil, nil)
-		},
-	})
+func TestCompleteEmailOAuthRegistrationIgnoresAffiliateClaims(t *testing.T) {
+	handler, client := newOAuthPendingFlowTestHandler(t, true)
 	ctx := context.Background()
 	invitation, err := client.RedeemCode.Create().
 		SetCode("INVITE456").
@@ -220,7 +199,6 @@ func TestCompleteEmailOAuthRegistrationUsesAffiliateCodeFromPendingSession(t *te
 			"provider":         "google",
 			"provider_key":     "google",
 			"provider_subject": "google-aff-user",
-			"aff_code":         "AFF456",
 		}).
 		SetLocalFlowState(map[string]any{
 			"step":  oauthPendingChoiceStep,
@@ -248,7 +226,6 @@ func TestCompleteEmailOAuthRegistrationUsesAffiliateCodeFromPendingSession(t *te
 	tamperedCount, err := client.User.Query().Where(dbuser.EmailEQ("tampered@example.com")).Count(ctx)
 	require.NoError(t, err)
 	require.Zero(t, tamperedCount)
-	require.Equal(t, []oauthEmailAffiliateBindCall{{userID: user.ID, inviterID: 2002}}, affiliateRepo.bindCalls)
 	storedInvitation, err := client.RedeemCode.Query().Where(redeemcode.IDEQ(invitation.ID)).Only(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, storedInvitation.UsedBy)
@@ -313,95 +290,6 @@ func TestParseGitHubOAuthProfileRejectsPublicEmailWhenEmailsEndpointFails(t *tes
 	require.Error(t, err)
 	require.Nil(t, profile)
 	require.Contains(t, err.Error(), "github emails endpoint status 403")
-}
-
-type oauthEmailAffiliateBindCall struct {
-	userID    int64
-	inviterID int64
-}
-
-type oauthEmailAffiliateRepoStub struct {
-	codeOwners    map[string]int64
-	ensureUserIDs []int64
-	bindCalls     []oauthEmailAffiliateBindCall
-}
-
-func newOAuthEmailAffiliateRepoStub(codeOwners map[string]int64) *oauthEmailAffiliateRepoStub {
-	return &oauthEmailAffiliateRepoStub{codeOwners: codeOwners}
-}
-
-func (r *oauthEmailAffiliateRepoStub) EnsureUserAffiliate(_ context.Context, userID int64) (*service.AffiliateSummary, error) {
-	r.ensureUserIDs = append(r.ensureUserIDs, userID)
-	return &service.AffiliateSummary{UserID: userID, AffCode: "SELF"}, nil
-}
-
-func (r *oauthEmailAffiliateRepoStub) GetAffiliateByCode(_ context.Context, code string) (*service.AffiliateSummary, error) {
-	userID, ok := r.codeOwners[strings.ToUpper(strings.TrimSpace(code))]
-	if !ok {
-		return nil, service.ErrAffiliateProfileNotFound
-	}
-	return &service.AffiliateSummary{UserID: userID, AffCode: strings.ToUpper(strings.TrimSpace(code))}, nil
-}
-
-func (r *oauthEmailAffiliateRepoStub) BindInviter(_ context.Context, userID, inviterID int64) (bool, error) {
-	r.bindCalls = append(r.bindCalls, oauthEmailAffiliateBindCall{userID: userID, inviterID: inviterID})
-	return true, nil
-}
-
-func (r *oauthEmailAffiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int, *int64) (bool, error) {
-	panic("unexpected AccrueQuota call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {
-	panic("unexpected GetAccruedRebateFromInvitee call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ThawFrozenQuota(context.Context, int64) (float64, error) {
-	panic("unexpected ThawFrozenQuota call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) TransferQuotaToBalance(context.Context, int64) (float64, float64, error) {
-	panic("unexpected TransferQuotaToBalance call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ListInvitees(context.Context, int64, int) ([]service.AffiliateInvitee, error) {
-	panic("unexpected ListInvitees call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) UpdateUserAffCode(context.Context, int64, string) error {
-	panic("unexpected UpdateUserAffCode call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ResetUserAffCode(context.Context, int64) (string, error) {
-	panic("unexpected ResetUserAffCode call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) SetUserRebateRate(context.Context, int64, *float64) error {
-	panic("unexpected SetUserRebateRate call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
-	panic("unexpected BatchSetUserRebateRate call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ListUsersWithCustomSettings(context.Context, service.AffiliateAdminFilter) ([]service.AffiliateAdminEntry, int64, error) {
-	panic("unexpected ListUsersWithCustomSettings call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ListAffiliateInviteRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateInviteRecord, int64, error) {
-	panic("unexpected ListAffiliateInviteRecords call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ListAffiliateRebateRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateRebateRecord, int64, error) {
-	panic("unexpected ListAffiliateRebateRecords call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) ListAffiliateTransferRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateTransferRecord, int64, error) {
-	panic("unexpected ListAffiliateTransferRecords call")
-}
-
-func (r *oauthEmailAffiliateRepoStub) GetAffiliateUserOverview(context.Context, int64) (*service.AffiliateUserOverview, error) {
-	panic("unexpected GetAffiliateUserOverview call")
 }
 
 func findSetCookieValue(cookies []*http.Cookie, name string) string {

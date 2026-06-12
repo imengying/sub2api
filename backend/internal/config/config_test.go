@@ -35,8 +35,8 @@ func TestNormalizeRunMode(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"simple", "simple"},
-		{"SIMPLE", "simple"},
+		{"simple", "standard"},
+		{"SIMPLE", "standard"},
 		{"standard", "standard"},
 		{"invalid", "standard"},
 		{"", "standard"},
@@ -47,6 +47,20 @@ func TestNormalizeRunMode(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("NormalizeRunMode(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
+	}
+}
+
+func TestLoadDefaultRunModeStandard(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("RUN_MODE", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.RunMode != RunModeStandard {
+		t.Fatalf("RunMode = %q, want %q", cfg.RunMode, RunModeStandard)
 	}
 }
 

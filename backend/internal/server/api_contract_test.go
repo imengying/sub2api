@@ -5,6 +5,7 @@ package server_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"math"
@@ -685,12 +686,7 @@ func TestAPIContracts(t *testing.T) {
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
 						"login_agreement_updated_at": "2026-03-31",
-						"login_agreement_documents": [
-							{"id": "terms", "title": "服务条款", "content_md": ""},
-							{"id": "usage-policy", "title": "使用政策", "content_md": ""},
-							{"id": "supported-regions", "title": "支持的国家和地区", "content_md": ""},
-							{"id": "service-specific-terms", "title": "服务特定条款", "content_md": ""}
-						],
+						"login_agreement_documents": [],
 						"smtp_host": "smtp.example.com",
 						"smtp_port": 587,
 						"smtp_username": "user",
@@ -958,12 +954,7 @@ func TestAPIContracts(t *testing.T) {
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
 						"login_agreement_updated_at": "2026-03-31",
-						"login_agreement_documents": [
-							{"id": "terms", "title": "服务条款", "content_md": ""},
-							{"id": "usage-policy", "title": "使用政策", "content_md": ""},
-							{"id": "supported-regions", "title": "支持的国家和地区", "content_md": ""},
-							{"id": "service-specific-terms", "title": "服务特定条款", "content_md": ""}
-						],
+						"login_agreement_documents": [],
 						"smtp_host": "",
 						"smtp_port": 587,
 						"smtp_username": "",
@@ -994,7 +985,7 @@ func TestAPIContracts(t *testing.T) {
 					"dingtalk_connect_sync_display_name": false,
 					"dingtalk_connect_sync_display_name_attr_key": "dingtalk_name",
 					"dingtalk_connect_sync_display_name_attr_name": "钉钉姓名",
-					"oidc_connect_enabled": true,
+					"oidc_connect_enabled": false,
 					"oidc_connect_provider_name": "ConfigOIDC",
 					"oidc_connect_client_id": "oidc-config-client",
 					"oidc_connect_client_secret_configured": true,
@@ -1121,11 +1112,11 @@ func TestAPIContracts(t *testing.T) {
 					"available_channels_enabled": false,
 					"risk_control_enabled": false,
 					"affiliate_enabled": false,
-					"wechat_connect_enabled": true,
+					"wechat_connect_enabled": false,
 					"wechat_connect_app_id": "wx-open-config",
 					"wechat_connect_app_secret_configured": true,
 					"wechat_connect_mode": "open",
-					"wechat_connect_open_enabled": true,
+					"wechat_connect_open_enabled": false,
 					"wechat_connect_open_app_id": "wx-open-config",
 					"wechat_connect_open_app_secret_configured": true,
 					"wechat_connect_mp_enabled": false,
@@ -1217,6 +1208,70 @@ func TestAPIContracts(t *testing.T) {
 	}
 }
 
+func TestPublicSettingsContractDisablesThirdPartyLogin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	deps := newContractDeps(t)
+	deps.cfg.LinuxDo = config.LinuxDoConnectConfig{Enabled: true}
+	deps.cfg.DingTalk = config.DingTalkConnectConfig{Enabled: true}
+	deps.cfg.OIDC = config.OIDCConnectConfig{Enabled: true, ProviderName: "ConfigOIDC"}
+	deps.cfg.WeChat = config.WeChatConnectConfig{
+		Enabled:             true,
+		OpenEnabled:         true,
+		OpenAppID:           "wx-open-config",
+		OpenAppSecret:       "wx-open-secret",
+		FrontendRedirectURL: "/auth/wechat/callback",
+	}
+	deps.settingRepo.SetAll(map[string]string{
+		service.SettingKeyRegistrationEnabled:              "true",
+		service.SettingKeyEmailVerifyEnabled:               "true",
+		service.SettingKeyLinuxDoConnectEnabled:            "true",
+		service.SettingKeyDingTalkConnectEnabled:           "true",
+		service.SettingKeyOIDCConnectEnabled:               "true",
+		service.SettingKeyOIDCConnectProviderName:          "ConfigOIDC",
+		service.SettingKeyGitHubOAuthEnabled:               "true",
+		service.SettingKeyGitHubOAuthClientID:              "github-client",
+		service.SettingKeyGitHubOAuthClientSecret:          "github-secret",
+		service.SettingKeyGoogleOAuthEnabled:               "true",
+		service.SettingKeyGoogleOAuthClientID:              "google-client",
+		service.SettingKeyGoogleOAuthClientSecret:          "google-secret",
+		service.SettingKeyWeChatConnectEnabled:             "true",
+		service.SettingKeyWeChatConnectOpenEnabled:         "true",
+		service.SettingKeyWeChatConnectOpenAppID:           "wx-open",
+		service.SettingKeyWeChatConnectOpenAppSecret:       "wx-open-secret",
+		service.SettingKeyWeChatConnectFrontendRedirectURL: "/auth/wechat/callback",
+		service.SettingKeyAffiliateEnabled:                 "true",
+	})
+
+	status, body := doRequest(t, deps.router, http.MethodGet, "/api/v1/settings/public", "", nil)
+	require.Equal(t, http.StatusOK, status)
+
+	var resp struct {
+		Code int `json:"code"`
+		Data map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(body), &resp))
+	require.Equal(t, 0, resp.Code)
+
+	for _, key := range []string{
+		"linuxdo_oauth_enabled",
+		"dingtalk_oauth_enabled",
+		"wechat_oauth_enabled",
+		"wechat_oauth_open_enabled",
+		"wechat_oauth_mp_enabled",
+		"wechat_oauth_mobile_enabled",
+		"oidc_oauth_enabled",
+		"github_oauth_enabled",
+		"google_oauth_enabled",
+		"affiliate_enabled",
+	} {
+		require.Equal(t, false, resp.Data[key], key)
+	}
+	require.Equal(t, true, resp.Data["registration_enabled"])
+	require.Equal(t, true, resp.Data["email_verify_enabled"])
+	require.Equal(t, "ConfigOIDC", resp.Data["oidc_oauth_provider_name"])
+}
+
 type contractDeps struct {
 	now         time.Time
 	router      http.Handler
@@ -1288,6 +1343,7 @@ func newContractDeps(t *testing.T) *contractDeps {
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, nil, nil)
 	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil, nil, nil)
 	adminAccountHandler := adminhandler.NewAccountHandler(adminService, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	publicSettingHandler := handler.NewSettingHandler(settingService, "test-version")
 
 	jwtAuth := func(c *gin.Context) {
 		c.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{
@@ -1309,6 +1365,8 @@ func newContractDeps(t *testing.T) *contractDeps {
 	r := gin.New()
 
 	v1 := r.Group("/api/v1")
+
+	v1.GET("/settings/public", publicSettingHandler.GetPublicSettings)
 
 	v1Auth := v1.Group("")
 	v1Auth.Use(jwtAuth)

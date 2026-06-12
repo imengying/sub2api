@@ -1,32 +1,40 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('user api oauth binding urls', () => {
+const { post } = vi.hoisted(() => ({
+  post: vi.fn(),
+}))
+
+vi.mock('@/api/client', () => ({
+  apiClient: {
+    post,
+  },
+}))
+
+import { bindEmailIdentity, sendEmailBindingCode } from '@/api/user'
+
+describe('user api account bindings', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/api/v1')
+    post.mockReset()
+    post.mockResolvedValue({ data: {} })
   })
 
-  afterEach(() => {
-    vi.unstubAllEnvs()
+  it('sends email binding verification codes', async () => {
+    await sendEmailBindingCode('alice@example.com')
+
+    expect(post).toHaveBeenCalledWith('/user/account-bindings/email/send-code', {
+      email: 'alice@example.com',
+    })
   })
 
-  it('builds third-party bind urls against the bind start endpoint', async () => {
-    const { buildOAuthBindingStartURL } = await import('@/api/user')
+  it('binds or replaces the email identity', async () => {
+    const payload = {
+      email: 'alice@example.com',
+      verify_code: '123456',
+      password: 'current-password',
+    }
 
-    expect(buildOAuthBindingStartURL('linuxdo', { redirectTo: '/settings/profile' })).toBe(
-      'https://api.example.com/api/v1/auth/oauth/linuxdo/bind/start?redirect=%2Fsettings%2Fprofile&intent=bind_current_user'
-    )
-    expect(
-      buildOAuthBindingStartURL('wechat', {
-        redirectTo: '/settings/profile',
-        wechatOAuthSettings: {
-          wechat_oauth_open_enabled: true,
-          wechat_oauth_mp_enabled: false,
-          wechat_oauth_mobile_enabled: false
-        }
-      })
-    ).toBe(
-      'https://api.example.com/api/v1/auth/oauth/wechat/bind/start?redirect=%2Fsettings%2Fprofile&intent=bind_current_user&mode=open'
-    )
+    await bindEmailIdentity(payload)
+
+    expect(post).toHaveBeenCalledWith('/user/account-bindings/email', payload)
   })
 })

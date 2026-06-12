@@ -706,10 +706,6 @@ func (s *BillingCacheService) IncrementUserPlatformQuotaUsage(userID int64, plat
 // 订阅模式：检查缓存用量未超过限额（Group限额从参数传入）
 // platform 为请求的目标平台（如 "anthropic"），传空串 "" 时跳过 user × platform quota 检查。
 func (s *BillingCacheService) CheckBillingEligibility(ctx context.Context, user *User, apiKey *APIKey, group *Group, subscription *UserSubscription, platform string) error {
-	// 简易模式：跳过所有计费检查
-	if s.cfg.RunMode == config.RunModeSimple {
-		return nil
-	}
 	if s.circuitBreaker != nil && !s.circuitBreaker.Allow() {
 		return ErrBillingServiceUnavailable
 	}
@@ -1314,12 +1310,9 @@ func monthlyQuotaWindowExpired(start *time.Time, now time.Time) bool {
 
 // HasUserPlatformQuotaLimit 判断该 user×platform 是否设了任一非 nil limit。
 // 写入点守卫:无 limit 直接跳过 Redis 写 + 脏集标记,消除无谓写入。
-// fail-safe:任何不确定(simple 模式除外)都返回 true 维持写入。
+// fail-safe:任何不确定都返回 true 维持写入。
 func (s *BillingCacheService) HasUserPlatformQuotaLimit(ctx context.Context, userID int64, platform string) bool {
-	if s.cfg.RunMode == config.RunModeSimple {
-		return false
-	}
-	if s.cache == nil {
+    if s.cache == nil {
 		return true
 	}
 	entry, ok, err := s.cache.GetUserPlatformQuotaCache(ctx, userID, platform)

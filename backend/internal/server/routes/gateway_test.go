@@ -77,3 +77,28 @@ func TestGatewayRoutesOpenAIImagesPathsAreRegistered(t *testing.T) {
 		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit OpenAI images handler", path)
 	}
 }
+
+func TestGatewayRoutesGeminiAndAntigravityPathsAreNotRegistered(t *testing.T) {
+	router := newGatewayRoutesTestRouter()
+
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/v1beta/models"},
+		{http.MethodGet, "/v1beta/models/gemini-2.5-pro"},
+		{http.MethodPost, "/v1beta/models/gemini-2.5-pro:generateContent"},
+		{http.MethodGet, "/antigravity/models"},
+		{http.MethodPost, "/antigravity/v1/messages"},
+		{http.MethodPost, "/antigravity/v1/messages/count_tokens"},
+		{http.MethodGet, "/antigravity/v1/models"},
+		{http.MethodGet, "/antigravity/v1/usage"},
+		{http.MethodGet, "/antigravity/v1beta/models"},
+		{http.MethodGet, "/antigravity/v1beta/models/gemini-2.5-pro"},
+		{http.MethodPost, "/antigravity/v1beta/models/gemini-2.5-pro:generateContent"},
+	} {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, nil))
+		require.Equal(t, http.StatusNotFound, w.Code, tc.method+" "+tc.path)
+	}
+}

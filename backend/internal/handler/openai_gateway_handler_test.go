@@ -1299,7 +1299,7 @@ func TestOpenAIResponsesWebSocket_FailoverOnUpstreamUsageLimitEvent(t *testing.T
 	}
 
 	cfg := &config.Config{}
-	cfg.RunMode = config.RunModeSimple
+	cfg.RunMode = config.RunModeStandard
 	cfg.Default.RateMultiplier = 1
 	cfg.Security.URLAllowlist.Enabled = false
 	cfg.Security.URLAllowlist.AllowInsecureHTTP = true
@@ -1471,7 +1471,7 @@ func runOpenAIResponsesWebSocketUsageLogCase(t *testing.T, tc openAIResponsesWSU
 	}
 
 	cfg := &config.Config{}
-	cfg.RunMode = config.RunModeSimple
+	cfg.RunMode = config.RunModeStandard
 	cfg.Default.RateMultiplier = 1
 	cfg.Security.URLAllowlist.Enabled = false
 	cfg.Security.URLAllowlist.AllowInsecureHTTP = true

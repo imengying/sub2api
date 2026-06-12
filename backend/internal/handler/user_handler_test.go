@@ -261,8 +261,8 @@ func TestUserHandlerGetProfileReturnsIdentitySummaries(t *testing.T) {
 	require.Equal(t, "OIDC Display", resp.Data.Identities.OIDC.DisplayName)
 	require.Equal(t, "https://issuer.example.com", resp.Data.Identities.OIDC.ProviderKey)
 	require.False(t, resp.Data.Identities.WeChat.Bound)
-	require.True(t, resp.Data.Identities.WeChat.CanBind)
-	require.Contains(t, resp.Data.Identities.WeChat.BindStartPath, "/api/v1/auth/oauth/wechat/bind/start")
+	require.False(t, resp.Data.Identities.WeChat.CanBind)
+	require.Empty(t, resp.Data.Identities.WeChat.BindStartPath)
 }
 
 func TestUserHandlerGetProfileReturnsLegacyCompatibilityFields(t *testing.T) {
@@ -747,7 +747,7 @@ func TestUserHandlerBindEmailIdentityRejectsWrongCurrentPasswordForBoundEmail(t 
 	require.Equal(t, "current@example.com", repo.user.Email)
 }
 
-func TestUserHandlerStartIdentityBindingReturnsAuthorizeURL(t *testing.T) {
+func TestUserHandlerStartIdentityBindingRejectsThirdPartyProviders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &userHandlerRepoStub{
@@ -770,23 +770,15 @@ func TestUserHandlerStartIdentityBindingReturnsAuthorizeURL(t *testing.T) {
 
 	handler.StartIdentityBinding(c)
 
-	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Equal(t, http.StatusBadRequest, recorder.Code)
 
 	var resp struct {
-		Code int `json:"code"`
-		Data struct {
-			Provider           string `json:"provider"`
-			AuthorizeURL       string `json:"authorize_url"`
-			Method             string `json:"method"`
-			UseBrowserRedirect bool   `json:"use_browser_redirect"`
-		} `json:"data"`
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Reason  string `json:"reason"`
 	}
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
-	require.Equal(t, 0, resp.Code)
-	require.Equal(t, "wechat", resp.Data.Provider)
-	require.Equal(t, "GET", resp.Data.Method)
-	require.True(t, resp.Data.UseBrowserRedirect)
-	require.Contains(t, resp.Data.AuthorizeURL, "/api/v1/auth/oauth/wechat/bind/start")
-	require.Contains(t, resp.Data.AuthorizeURL, "intent=bind_current_user")
-	require.Contains(t, resp.Data.AuthorizeURL, "redirect=%2Fsettings%2Fprofile")
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	require.Equal(t, "IDENTITY_PROVIDER_INVALID", resp.Reason)
+	require.Equal(t, "identity provider is invalid", resp.Message)
 }

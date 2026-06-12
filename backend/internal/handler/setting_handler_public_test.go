@@ -82,10 +82,19 @@ func TestSettingHandler_GetPublicSettings_ExposesForceEmailOnThirdPartySignup(t 
 	require.True(t, resp.Data.ForceEmailOnThirdPartySignup)
 }
 
-func TestSettingHandler_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *testing.T) {
+func TestSettingHandler_GetPublicSettings_DisablesThirdPartyLoginFlags(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := NewSettingHandler(service.NewSettingService(&settingHandlerPublicRepoStub{
 		values: map[string]string{
+			service.SettingKeyLinuxDoConnectEnabled:            "true",
+			service.SettingKeyDingTalkConnectEnabled:           "true",
+			service.SettingKeyOIDCConnectEnabled:               "true",
+			service.SettingKeyGitHubOAuthEnabled:               "true",
+			service.SettingKeyGitHubOAuthClientID:              "github-client",
+			service.SettingKeyGitHubOAuthClientSecret:          "github-secret",
+			service.SettingKeyGoogleOAuthEnabled:               "true",
+			service.SettingKeyGoogleOAuthClientID:              "google-client",
+			service.SettingKeyGoogleOAuthClientSecret:          "google-secret",
 			service.SettingKeyWeChatConnectEnabled:             "true",
 			service.SettingKeyWeChatConnectAppID:               "wx-mp-app",
 			service.SettingKeyWeChatConnectAppSecret:           "wx-mp-secret",
@@ -109,14 +118,24 @@ func TestSettingHandler_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
+			LinuxDoOAuthEnabled   bool `json:"linuxdo_oauth_enabled"`
+			DingTalkOAuthEnabled  bool `json:"dingtalk_oauth_enabled"`
 			WeChatOAuthEnabled     bool `json:"wechat_oauth_enabled"`
 			WeChatOAuthOpenEnabled bool `json:"wechat_oauth_open_enabled"`
 			WeChatOAuthMPEnabled   bool `json:"wechat_oauth_mp_enabled"`
+			OIDCOAuthEnabled      bool `json:"oidc_oauth_enabled"`
+			GitHubOAuthEnabled    bool `json:"github_oauth_enabled"`
+			GoogleOAuthEnabled    bool `json:"google_oauth_enabled"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Code)
-	require.True(t, resp.Data.WeChatOAuthEnabled)
-	require.True(t, resp.Data.WeChatOAuthOpenEnabled)
-	require.True(t, resp.Data.WeChatOAuthMPEnabled)
+	require.False(t, resp.Data.LinuxDoOAuthEnabled)
+	require.False(t, resp.Data.DingTalkOAuthEnabled)
+	require.False(t, resp.Data.WeChatOAuthEnabled)
+	require.False(t, resp.Data.WeChatOAuthOpenEnabled)
+	require.False(t, resp.Data.WeChatOAuthMPEnabled)
+	require.False(t, resp.Data.OIDCOAuthEnabled)
+	require.False(t, resp.Data.GitHubOAuthEnabled)
+	require.False(t, resp.Data.GoogleOAuthEnabled)
 }

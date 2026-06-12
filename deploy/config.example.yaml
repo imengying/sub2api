@@ -4,7 +4,7 @@
 # Copy this file to /etc/sub2api/config.yaml and modify as needed
 # 复制此文件到 /etc/sub2api/config.yaml 并根据需要修改
 #
-# Documentation / 文档: https://github.com/Wei-Shaw/sub2api
+# Documentation / 文档: https://github.com/imengying/sub2api
 
 # =============================================================================
 # Server Configuration
@@ -53,18 +53,6 @@ server:
     # Max upload buffer per stream in bytes (default: 512KB)
     # 每个流的最大上传缓冲区（字节，默认 512KB）
     max_upload_buffer_per_stream: 524288
-
-# =============================================================================
-# Run Mode Configuration
-# 运行模式配置
-# =============================================================================
-# Run mode: "standard" (default) or "simple" (for internal use)
-# 运行模式："standard"（默认）或 "simple"（内部使用）
-# - standard: Full SaaS features with billing/balance checks
-# - standard: 完整 SaaS 功能，包含计费和余额校验
-# - simple: Hides SaaS features and skips billing/balance checks
-# - simple: 隐藏 SaaS 功能，跳过计费和余额校验
-run_mode: "standard"
 
 # =============================================================================
 # CORS Configuration

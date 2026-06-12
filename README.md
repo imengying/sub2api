@@ -12,7 +12,7 @@
 
 **AI API Gateway Platform for Subscription Quota Distribution**
 
-English | [日本語](README_JA.md)
+English | [中文](README_CN.md)
 
 </div>
 
@@ -171,7 +171,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/imengying/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -221,7 +221,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/imengying/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -244,7 +244,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub2api-deploy && cd sub2api-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/imengying/sub2api/main/deploy/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -266,7 +266,7 @@ If you prefer manual setup:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/imengying/sub2api.git
 cd sub2api/deploy
 
 # 2. Copy environment configuration
@@ -405,7 +405,7 @@ Build and run from source code for development or customization.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/imengying/sub2api.git
 cd sub2api
 
 # 2. Install pnpm (if not already installed)
@@ -547,50 +547,6 @@ go generate ./ent
 go generate ./cmd/server
 ```
 
----
-
-## Simple Mode
-
-Simple Mode is designed for individual developers or internal teams who want quick access without full SaaS features.
-
-- Enable: Set environment variable `RUN_MODE=simple`
-- Difference: Hides SaaS-related features and skips billing process
-- Security note: In production, you must also set `SIMPLE_MODE_CONFIRM=true` to allow startup
-
----
-
-## Antigravity Support
-
-Sub2API supports [Antigravity](https://antigravity.so/) accounts. After authorization, dedicated endpoints are available for Claude and Gemini models.
-
-### Dedicated Endpoints
-
-| Endpoint | Model |
-|----------|-------|
-| `/antigravity/v1/messages` | Claude models |
-| `/antigravity/v1beta/` | Gemini models |
-
-### Claude Code Configuration
-
-```bash
-export ANTHROPIC_BASE_URL="http://localhost:8080/antigravity"
-export ANTHROPIC_AUTH_TOKEN="sk-xxx"
-```
-
-### Hybrid Scheduling Mode
-
-Antigravity accounts support optional **hybrid scheduling**. When enabled, the general endpoints `/v1/messages` and `/v1beta/` will also route requests to Antigravity accounts.
-
-> **⚠️ Warning**: Anthropic Claude and Antigravity Claude **cannot be mixed within the same conversation context**. Use groups to isolate them properly.
-
-### Known Issues
-
-In Claude Code, Plan Mode cannot exit automatically. (Normally when using the native Claude API, after planning is complete, Claude Code will pop up options for users to approve or reject the plan.)
-
-**Workaround**: Press `Shift + Tab` to manually exit Plan Mode, then type your response to approve or reject the plan.
-
----
-
 ## Project Structure
 
 ```
@@ -631,11 +587,11 @@ sub2api/
 
 ## Star History
 
-<a href="https://star-history.com/#Wei-Shaw/sub2api&Date">
+<a href="https://star-history.com/#imengying/sub2api&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/sub2api&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/sub2api&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Wei-Shaw/sub2api&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=imengying/sub2api&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=imengying/sub2api&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=imengying/sub2api&type=Date" />
  </picture>
 </a>
 

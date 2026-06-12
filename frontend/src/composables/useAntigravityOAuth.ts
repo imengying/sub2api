@@ -1,8 +1,16 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { adminAPI } from '@/api/admin'
-import type { AntigravityTokenInfo } from '@/api/admin/antigravity'
+
+export interface AntigravityTokenInfo {
+  access_token?: string
+  refresh_token?: string
+  token_type?: string
+  expires_at?: number | string
+  project_id?: string
+  email?: string
+  [key: string]: unknown
+}
 
 export function useAntigravityOAuth() {
   const appStore = useAppStore()
@@ -23,6 +31,7 @@ export function useAntigravityOAuth() {
   }
 
   const generateAuthUrl = async (proxyId: number | null | undefined): Promise<boolean> => {
+    void proxyId
     loading.value = true
     authUrl.value = ''
     sessionId.value = ''
@@ -30,17 +39,9 @@ export function useAntigravityOAuth() {
     error.value = ''
 
     try {
-      const payload: Record<string, unknown> = {}
-      if (proxyId) payload.proxy_id = proxyId
-
-      const response = await adminAPI.antigravity.generateAuthUrl(payload as any)
-      authUrl.value = response.auth_url
-      sessionId.value = response.session_id
-      state.value = response.state
-      return true
-    } catch (err: any) {
-      error.value =
-        err.response?.data?.detail || t('admin.accounts.oauth.antigravity.failedToGenerateUrl')
+      throw new Error(t('admin.accounts.oauth.antigravity.failedToGenerateUrl'))
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : t('admin.accounts.oauth.antigravity.failedToGenerateUrl')
       appStore.showError(error.value)
       return false
     } finally {
@@ -60,56 +61,25 @@ export function useAntigravityOAuth() {
       return null
     }
 
-    loading.value = true
-    error.value = ''
-
-    try {
-      const payload: Record<string, unknown> = {
-        session_id: params.sessionId,
-        state: params.state,
-        code
-      }
-      if (params.proxyId) payload.proxy_id = params.proxyId
-
-      const tokenInfo = await adminAPI.antigravity.exchangeCode(payload as any)
-      return tokenInfo as AntigravityTokenInfo
-    } catch (err: any) {
-      error.value =
-        err.response?.data?.detail || t('admin.accounts.oauth.antigravity.failedToExchangeCode')
-      appStore.showError(error.value)
-      return null
-    } finally {
-      loading.value = false
-    }
+    loading.value = false
+    error.value = t('admin.accounts.oauth.antigravity.failedToExchangeCode')
+    appStore.showError(error.value)
+    return null
   }
 
   const validateRefreshToken = async (
     refreshToken: string,
     proxyId?: number | null
   ): Promise<AntigravityTokenInfo | null> => {
+    void proxyId
     if (!refreshToken.trim()) {
       error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshToken')
       return null
     }
 
-    loading.value = true
-    error.value = ''
-
-    try {
-      const tokenInfo = await adminAPI.antigravity.refreshAntigravityToken(
-        refreshToken.trim(),
-        proxyId
-      )
-      return tokenInfo as AntigravityTokenInfo
-    } catch (err: any) {
-      error.value =
-        err.response?.data?.detail || t('admin.accounts.oauth.antigravity.failedToValidateRT')
-      // Don't show global error toast for batch validation to avoid spamming
-      // appStore.showError(error.value)
-      return null
-    } finally {
-      loading.value = false
-    }
+    loading.value = false
+    error.value = t('admin.accounts.oauth.antigravity.failedToValidateRT')
+    return null
   }
 
   const buildCredentials = (tokenInfo: AntigravityTokenInfo): Record<string, unknown> => {

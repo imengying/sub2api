@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSimpleModeBypassesQuotaCheck(t *testing.T) {
+func TestAPIKeyAuthSubscriptionQuota(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	limit := 1.0
@@ -108,34 +108,6 @@ func TestSimpleModeBypassesQuotaCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("simple_mode_bypasses_quota_check", func(t *testing.T) {
-		cfg := &config.Config{RunMode: config.RunModeSimple}
-		apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
-		subscriptionService := service.NewSubscriptionService(nil, &stubUserSubscriptionRepo{}, nil, nil, cfg)
-		router := newAuthTestRouter(apiKeyService, subscriptionService, cfg)
-
-		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/t", nil)
-		req.Header.Set("x-api-key", apiKey.Key)
-		router.ServeHTTP(w, req)
-
-		require.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("simple_mode_accepts_lowercase_bearer", func(t *testing.T) {
-		cfg := &config.Config{RunMode: config.RunModeSimple}
-		apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
-		subscriptionService := service.NewSubscriptionService(nil, &stubUserSubscriptionRepo{}, nil, nil, cfg)
-		router := newAuthTestRouter(apiKeyService, subscriptionService, cfg)
-
-		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/t", nil)
-		req.Header.Set("Authorization", "bearer "+apiKey.Key)
-		router.ServeHTTP(w, req)
-
-		require.Equal(t, http.StatusOK, w.Code)
-	})
-
 	t.Run("standard_mode_enforces_quota_check", func(t *testing.T) {
 		cfg := &config.Config{RunMode: config.RunModeStandard}
 		apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
@@ -214,7 +186,7 @@ func TestAPIKeyAuthSetsGroupContext(t *testing.T) {
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := gin.New()
 	router.Use(gin.HandlerFunc(NewAPIKeyAuthMiddleware(apiKeyService, nil, cfg)))
@@ -273,7 +245,7 @@ func TestAPIKeyAuthRejectsExclusiveGroupWhenUserNoLongerAllowed(t *testing.T) {
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := newAuthTestRouter(apiKeyService, nil, cfg)
 
@@ -323,7 +295,7 @@ func TestAPIKeyAuthOverwritesInvalidContextGroup(t *testing.T) {
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := gin.New()
 	router.Use(gin.HandlerFunc(NewAPIKeyAuthMiddleware(apiKeyService, nil, cfg)))
@@ -674,7 +646,7 @@ func TestAPIKeyAuthIPRestrictionDoesNotTrustForwardedClientIPByDefault(t *testin
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := gin.New()
 	require.NoError(t, router.SetTrustedProxies(nil))
@@ -736,7 +708,7 @@ func TestAPIKeyAuthIPRestrictionCanTrustForwardedClientIPForReverseProxy(t *test
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	cfg.SetTrustForwardedIPForAPIKeyACL(true)
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := gin.New()
@@ -793,7 +765,7 @@ func TestAPIKeyAuthTouchesLastUsedOnSuccess(t *testing.T) {
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := newAuthTestRouter(apiKeyService, nil, cfg)
 
@@ -840,7 +812,7 @@ func TestAPIKeyAuthTouchLastUsedFailureDoesNotBlock(t *testing.T) {
 		},
 	}
 
-	cfg := &config.Config{RunMode: config.RunModeSimple}
+	cfg := &config.Config{RunMode: config.RunModeStandard}
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, nil, nil, nil, nil, nil, cfg)
 	router := newAuthTestRouter(apiKeyService, nil, cfg)
 

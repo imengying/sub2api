@@ -145,11 +145,6 @@ type SystemSettings struct {
 	DefaultConcurrency           int
 	DefaultBalance               float64
 	RiskControlEnabled           bool
-	AffiliateEnabled             bool
-	AffiliateRebateRate          float64
-	AffiliateRebateFreezeHours   int
-	AffiliateRebateDurationDays  int
-	AffiliateRebatePerInviteeCap float64
 	DefaultUserRPMLimit          int
 	DefaultSubscriptions         []DefaultSubscriptionSetting
 
@@ -199,12 +194,6 @@ type SystemSettings struct {
 
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool // 是否启用 web search 模拟
-
-	// Payment visible method routing
-	PaymentVisibleMethodAlipaySource  string
-	PaymentVisibleMethodWxpaySource   string
-	PaymentVisibleMethodAlipayEnabled bool
-	PaymentVisibleMethodWxpayEnabled  bool
 
 	// OpenAI 账号调度
 	OpenAIAdvancedSchedulerEnabled bool
@@ -272,7 +261,6 @@ type PublicSettings struct {
 	WeChatOAuthMPEnabled     bool
 	WeChatOAuthMobileEnabled bool
 	BackendModeEnabled       bool
-	PaymentEnabled           bool
 	OIDCOAuthEnabled         bool
 	OIDCOAuthProviderName    string
 	GitHubOAuthEnabled       bool
@@ -290,9 +278,6 @@ type PublicSettings struct {
 
 	// Available Channels feature (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
-
-	// Affiliate (邀请返利) feature toggle
-	AffiliateEnabled bool `json:"affiliate_enabled"`
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`

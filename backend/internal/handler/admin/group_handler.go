@@ -84,14 +84,14 @@ func NewGroupHandler(adminService service.AdminService, dashboardService *servic
 type CreateGroupRequest struct {
 	Name             string             `json:"name" binding:"required"`
 	Description      string             `json:"description"`
-	Platform         string             `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity"`
+	Platform         string             `json:"platform" binding:"omitempty,oneof=anthropic openai"`
 	RateMultiplier   float64            `json:"rate_multiplier"`
 	IsExclusive      bool               `json:"is_exclusive"`
 	SubscriptionType string             `json:"subscription_type" binding:"omitempty,oneof=standard subscription"`
 	DailyLimitUSD    optionalLimitField `json:"daily_limit_usd"`
 	WeeklyLimitUSD   optionalLimitField `json:"weekly_limit_usd"`
 	MonthlyLimitUSD  optionalLimitField `json:"monthly_limit_usd"`
-	// 图片生成计费配置（antigravity 和 gemini 平台使用，负数表示清除配置）
+	// 图片生成计费配置（负数表示清除配置）
 	AllowImageGeneration            bool     `json:"allow_image_generation"`
 	ImageRateIndependent            bool     `json:"image_rate_independent"`
 	ImageRateMultiplier             *float64 `json:"image_rate_multiplier"`
@@ -105,7 +105,7 @@ type CreateGroupRequest struct {
 	ModelRouting        map[string][]int64 `json:"model_routing"`
 	ModelRoutingEnabled bool               `json:"model_routing_enabled"`
 	MCPXMLInject        *bool              `json:"mcp_xml_inject"`
-	// 支持的模型系列（仅 antigravity 平台使用）
+	// 支持的模型系列（历史字段）
 	SupportedModelScopes []string `json:"supported_model_scopes"`
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       bool                                      `json:"allow_messages_dispatch"`
@@ -124,7 +124,7 @@ type CreateGroupRequest struct {
 type UpdateGroupRequest struct {
 	Name             string             `json:"name"`
 	Description      *string            `json:"description"`
-	Platform         string             `json:"platform" binding:"omitempty,oneof=anthropic openai gemini antigravity"`
+	Platform         string             `json:"platform" binding:"omitempty,oneof=anthropic openai"`
 	RateMultiplier   *float64           `json:"rate_multiplier"`
 	IsExclusive      *bool              `json:"is_exclusive"`
 	Status           string             `json:"status" binding:"omitempty,oneof=active inactive"`
@@ -132,7 +132,7 @@ type UpdateGroupRequest struct {
 	DailyLimitUSD    optionalLimitField `json:"daily_limit_usd"`
 	WeeklyLimitUSD   optionalLimitField `json:"weekly_limit_usd"`
 	MonthlyLimitUSD  optionalLimitField `json:"monthly_limit_usd"`
-	// 图片生成计费配置（antigravity 和 gemini 平台使用，负数表示清除配置）
+	// 图片生成计费配置（负数表示清除配置）
 	AllowImageGeneration            *bool    `json:"allow_image_generation"`
 	ImageRateIndependent            *bool    `json:"image_rate_independent"`
 	ImageRateMultiplier             *float64 `json:"image_rate_multiplier"`

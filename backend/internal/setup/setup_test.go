@@ -55,14 +55,21 @@ func TestDecideAdminBootstrap(t *testing.T) {
 }
 
 func TestSetupDefaultAdminConcurrency(t *testing.T) {
-	t.Run("simple mode admin uses higher concurrency", func(t *testing.T) {
-		t.Setenv("RUN_MODE", "simple")
-		if got := setupDefaultAdminConcurrency(); got != simpleModeAdminConcurrency {
-			t.Fatalf("setupDefaultAdminConcurrency()=%d, want %d", got, simpleModeAdminConcurrency)
+	t.Run("default mode uses base concurrency", func(t *testing.T) {
+		t.Setenv("RUN_MODE", "")
+		if got := setupDefaultAdminConcurrency(); got != defaultUserConcurrency {
+			t.Fatalf("setupDefaultAdminConcurrency()=%d, want %d", got, defaultUserConcurrency)
 		}
 	})
 
-	t.Run("standard mode keeps existing default", func(t *testing.T) {
+	t.Run("unknown run mode uses base concurrency", func(t *testing.T) {
+		t.Setenv("RUN_MODE", "unknown")
+		if got := setupDefaultAdminConcurrency(); got != defaultUserConcurrency {
+			t.Fatalf("setupDefaultAdminConcurrency()=%d, want %d", got, defaultUserConcurrency)
+		}
+	})
+
+	t.Run("standard mode uses base concurrency", func(t *testing.T) {
 		t.Setenv("RUN_MODE", "standard")
 		if got := setupDefaultAdminConcurrency(); got != defaultUserConcurrency {
 			t.Fatalf("setupDefaultAdminConcurrency()=%d, want %d", got, defaultUserConcurrency)
@@ -71,8 +78,7 @@ func TestSetupDefaultAdminConcurrency(t *testing.T) {
 }
 
 func TestWriteConfigFileKeepsDefaultUserConcurrency(t *testing.T) {
-	t.Setenv("RUN_MODE", "simple")
-	t.Setenv("DATA_DIR", t.TempDir())
+    t.Setenv("DATA_DIR", t.TempDir())
 
 	if err := writeConfigFile(&SetupConfig{}); err != nil {
 		t.Fatalf("writeConfigFile() error = %v", err)

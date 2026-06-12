@@ -1142,9 +1142,7 @@ const allColumns = computed(() => {
     { key: 'schedulable', label: t('admin.accounts.columns.schedulable'), sortable: true },
     { key: 'today_stats', label: t('admin.accounts.columns.todayStats'), sortable: false }
   ]
-  if (!authStore.isSimpleMode) {
-    c.push({ key: 'groups', label: t('admin.accounts.columns.groups'), sortable: false })
-  }
+  c.push({ key: 'groups', label: t('admin.accounts.columns.groups'), sortable: false })
   c.push(
     { key: 'usage', label: t('admin.accounts.columns.usageWindows'), sortable: false },
     { key: 'proxy', label: t('admin.accounts.columns.proxy'), sortable: false },

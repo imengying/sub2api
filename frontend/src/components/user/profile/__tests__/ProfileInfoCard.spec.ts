@@ -27,22 +27,13 @@ vi.mock('vue-i18n', async (importOriginal) => {
   return {
     ...actual,
     useI18n: () => ({
-      t: (key: string, params?: Record<string, string>) => {
+      t: (key: string) => {
         if (key === 'profile.accountBalance') return 'Account Balance'
         if (key === 'profile.concurrencyLimit') return 'Concurrency Limit'
         if (key === 'profile.memberSince') return 'Member Since'
         if (key === 'profile.administrator') return 'Administrator'
         if (key === 'profile.user') return 'User'
         if (key === 'profile.authBindings.providers.email') return 'Email'
-        if (key === 'profile.authBindings.providers.linuxdo') return 'LinuxDo'
-        if (key === 'profile.authBindings.providers.wechat') return 'WeChat'
-        if (key === 'profile.authBindings.providers.oidc') return params?.providerName || 'OIDC'
-        if (key === 'profile.authBindings.source.avatar') {
-          return `Avatar synced from ${params?.providerName || 'provider'}`
-        }
-        if (key === 'profile.authBindings.source.username') {
-          return `Username synced from ${params?.providerName || 'provider'}`
-        }
         return key
       }
     })
@@ -87,48 +78,6 @@ describe('ProfileInfoCard', () => {
     expect(wrapper.text()).toContain('User')
     expect(wrapper.get('[data-testid="profile-basics-panel"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="profile-auth-bindings-panel"]').exists()).toBe(true)
-  })
-
-  it('renders third-party source hints from profile sources', () => {
-    const wrapper = mount(ProfileInfoCard, {
-      props: {
-        user: createUser({
-          avatar_url: 'https://cdn.example.com/linuxdo.png',
-          profile_sources: {
-            avatar: { provider: 'linuxdo', source: 'linuxdo' },
-            username: { provider: 'linuxdo', source: 'linuxdo' }
-          }
-        })
-      },
-      global: {
-        stubs: {
-          Icon: true
-        }
-      }
-    })
-
-    expect(wrapper.text()).toContain('Avatar synced from LinuxDo')
-    expect(wrapper.text()).toContain('Username synced from LinuxDo')
-  })
-
-  it('uses the configured OIDC provider name in source hints', () => {
-    const wrapper = mount(ProfileInfoCard, {
-      props: {
-        user: createUser({
-          profile_sources: {
-            username: { provider: 'oidc', source: 'oidc' }
-          }
-        }),
-        oidcProviderName: 'ExampleID'
-      },
-      global: {
-        stubs: {
-          Icon: true
-        }
-      }
-    })
-
-    expect(wrapper.text()).toContain('Username synced from ExampleID')
   })
 
   it('does not display synthetic oauth-only emails as a real bound email', () => {

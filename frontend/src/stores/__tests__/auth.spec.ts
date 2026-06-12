@@ -261,17 +261,17 @@ describe('useAuthStore', () => {
       expect(localStorage.getItem('pending_auth_session')).toBeNull()
     })
 
-    it('restores a persisted pending oauth session without requiring a token value', () => {
-      const firstStore = useAuthStore()
-
-      firstStore.setPendingAuthSession({
-        token: '',
-        token_field: 'pending_oauth_token',
-        provider: 'oidc',
-        redirect: '/welcome',
-        adoption_required: true,
-        suggested_display_name: 'OIDC Nick'
-      })
+    it('defaults missing pending token fields when restoring persisted state', () => {
+      localStorage.setItem(
+        'pending_auth_session',
+        JSON.stringify({
+          token: '',
+          provider: 'oidc',
+          redirect: '/welcome',
+          adoption_required: true,
+          suggested_display_name: 'OIDC Nick'
+        })
+      )
 
       setActivePinia(createPinia())
       const restoredStore = useAuthStore()
@@ -281,7 +281,7 @@ describe('useAuthStore', () => {
       expect(restoredStore.hasPendingAuthSession).toBe(true)
       expect(restoredStore.pendingAuthSession).toEqual({
         token: '',
-        token_field: 'pending_oauth_token',
+        token_field: 'pending_auth_token',
         provider: 'oidc',
         redirect: '/welcome',
         adoption_required: true,
@@ -366,25 +366,4 @@ describe('useAuthStore', () => {
     })
   })
 
-  // --- isSimpleMode ---
-
-  describe('isSimpleMode', () => {
-    it('run_mode 为 simple 时返回 true', async () => {
-      const simpleResponse = {
-        ...fakeAuthResponse,
-        user: { ...fakeUser, run_mode: 'simple' as const },
-      }
-      mockLogin.mockResolvedValue(simpleResponse)
-      const store = useAuthStore()
-
-      await store.login({ email: 'test@example.com', password: '123456' })
-
-      expect(store.isSimpleMode).toBe(true)
-    })
-
-    it('默认为 standard 模式', () => {
-      const store = useAuthStore()
-      expect(store.isSimpleMode).toBe(false)
-    })
-  })
 })

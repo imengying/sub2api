@@ -2196,7 +2196,7 @@ func (h *AccountHandler) SyncUpstreamModelsPreview(c *gin.Context) {
 	response.Success(c, gin.H{"models": models})
 }
 
-// SetPrivacy handles setting privacy for a single OpenAI/Antigravity OAuth account
+// SetPrivacy handles setting privacy for a single OpenAI OAuth account
 // POST /api/v1/admin/accounts/:id/set-privacy
 func (h *AccountHandler) SetPrivacy(c *gin.Context) {
 	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -2217,10 +2217,8 @@ func (h *AccountHandler) SetPrivacy(c *gin.Context) {
 	switch account.Platform {
 	case service.PlatformOpenAI:
 		mode = h.adminService.ForceOpenAIPrivacy(c.Request.Context(), account)
-	case service.PlatformAntigravity:
-		mode = h.adminService.ForceAntigravityPrivacy(c.Request.Context(), account)
 	default:
-		response.BadRequest(c, "Only OpenAI and Antigravity OAuth accounts support privacy setting")
+		response.BadRequest(c, "Only OpenAI OAuth accounts support privacy setting")
 		return
 	}
 	if mode == "" {

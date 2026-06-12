@@ -2,7 +2,7 @@ import type { GroupPlatform } from '@/types'
 
 export const OPENAI_CC_SWITCH_CODEX_MODEL = 'gpt-5.4'
 
-export type CcSwitchClientType = 'claude' | 'gemini'
+export type CcSwitchClientType = 'claude'
 
 export interface CcSwitchImportConfig {
   app: string
@@ -24,22 +24,13 @@ export function resolveCcSwitchImportConfig(
   clientType: CcSwitchClientType,
   baseUrl: string
 ): CcSwitchImportConfig {
+  void clientType
   switch (platform || 'anthropic') {
-    case 'antigravity':
-      return {
-        app: clientType === 'gemini' ? 'gemini' : 'claude',
-        endpoint: `${baseUrl}/antigravity`
-      }
     case 'openai':
       return {
         app: 'codex',
         endpoint: baseUrl,
         model: OPENAI_CC_SWITCH_CODEX_MODEL
-      }
-    case 'gemini':
-      return {
-        app: 'gemini',
-        endpoint: baseUrl
       }
     default:
       return {

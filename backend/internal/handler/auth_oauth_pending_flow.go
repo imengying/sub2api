@@ -68,7 +68,6 @@ type createPendingOAuthAccountRequest struct {
 	VerifyCode       string `json:"verify_code,omitempty"`
 	Password         string `json:"password" binding:"required,min=6"`
 	InvitationCode   string `json:"invitation_code,omitempty"`
-	AffCode          string `json:"aff_code,omitempty"`
 	AdoptDisplayName *bool  `json:"adopt_display_name,omitempty"`
 	AdoptAvatar      *bool  `json:"adopt_avatar,omitempty"`
 }
@@ -1463,11 +1462,6 @@ func clearOAuthLogoutCookies(c *gin.Context) {
 	wechatClearCookie(c, wechatOAuthIntentCookieName, secureCookie)
 	wechatClearCookie(c, wechatOAuthModeCookieName, secureCookie)
 	wechatClearCookie(c, wechatOAuthBindUserCookieName, secureCookie)
-
-	wechatPaymentClearCookie(c, wechatPaymentOAuthStateName, secureCookie)
-	wechatPaymentClearCookie(c, wechatPaymentOAuthRedirect, secureCookie)
-	wechatPaymentClearCookie(c, wechatPaymentOAuthContextName, secureCookie)
-	wechatPaymentClearCookie(c, wechatPaymentOAuthScope, secureCookie)
 }
 
 func buildPendingOAuthSessionStatusPayload(session *dbent.PendingAuthSession) gin.H {
@@ -1781,7 +1775,7 @@ func (h *AuthHandler) createPendingOAuthAccount(c *gin.Context, provider string)
 		user,
 		strings.TrimSpace(req.InvitationCode),
 		strings.TrimSpace(session.ProviderType),
-		strings.TrimSpace(req.AffCode),
+		"",
 	); err != nil {
 		_ = tx.Rollback()
 		if rollbackCreatedUser(err) {

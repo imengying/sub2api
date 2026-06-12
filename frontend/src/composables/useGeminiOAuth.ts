@@ -1,8 +1,10 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { adminAPI } from '@/api/admin'
-import type { GeminiOAuthCapabilities } from '@/api/admin/gemini'
+
+export interface GeminiOAuthCapabilities {
+  ai_studio_oauth_enabled?: boolean
+}
 
 export interface GeminiTokenInfo {
   access_token?: string
@@ -41,6 +43,10 @@ export function useGeminiOAuth() {
     oauthType?: string,
     tierId?: string
   ): Promise<boolean> => {
+    void proxyId
+    void projectId
+    void oauthType
+    void tierId
     loading.value = true
     authUrl.value = ''
     sessionId.value = ''
@@ -48,21 +54,9 @@ export function useGeminiOAuth() {
     error.value = ''
 
     try {
-      const payload: Record<string, unknown> = {}
-      if (proxyId) payload.proxy_id = proxyId
-      const trimmedProjectID = projectId?.trim()
-      if (trimmedProjectID) payload.project_id = trimmedProjectID
-      if (oauthType) payload.oauth_type = oauthType
-      const trimmedTierID = tierId?.trim()
-      if (trimmedTierID) payload.tier_id = trimmedTierID
-
-      const response = await adminAPI.gemini.generateAuthUrl(payload as any)
-      authUrl.value = response.auth_url
-      sessionId.value = response.session_id
-      state.value = response.state
-      return true
-    } catch (err: any) {
-      error.value = err.response?.data?.detail || t('admin.accounts.oauth.gemini.failedToGenerateUrl')
+      throw new Error(t('admin.accounts.oauth.gemini.failedToGenerateUrl'))
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : t('admin.accounts.oauth.gemini.failedToGenerateUrl')
       appStore.showError(error.value)
       return false
     } finally {
@@ -84,35 +78,10 @@ export function useGeminiOAuth() {
       return null
     }
 
-    loading.value = true
-    error.value = ''
-
-    try {
-      const payload: Record<string, unknown> = {
-        session_id: params.sessionId,
-        state: params.state,
-        code
-      }
-      if (params.proxyId) payload.proxy_id = params.proxyId
-      if (params.oauthType) payload.oauth_type = params.oauthType
-      const trimmedTierID = params.tierId?.trim()
-      if (trimmedTierID) payload.tier_id = trimmedTierID
-
-      const tokenInfo = await adminAPI.gemini.exchangeCode(payload as any)
-      return tokenInfo as GeminiTokenInfo
-    } catch (err: any) {
-      // Check for specific missing project_id error
-      const errorMessage = err.message || err.response?.data?.message || ''
-      if (errorMessage.includes('missing project_id')) {
-        error.value = t('admin.accounts.oauth.gemini.missingProjectId')
-      } else {
-        error.value = errorMessage || t('admin.accounts.oauth.gemini.failedToExchangeCode')
-      }
-      appStore.showError(error.value)
-      return null
-    } finally {
-      loading.value = false
-    }
+    loading.value = false
+    error.value = t('admin.accounts.oauth.gemini.failedToExchangeCode')
+    appStore.showError(error.value)
+    return null
   }
 
   const buildCredentials = (tokenInfo: GeminiTokenInfo): Record<string, unknown> => {
@@ -140,14 +109,7 @@ export function useGeminiOAuth() {
     return tokenInfo.extra
   }
 
-  const getCapabilities = async (): Promise<GeminiOAuthCapabilities | null> => {
-    try {
-      return await adminAPI.gemini.getCapabilities()
-    } catch (err: any) {
-      // Capabilities are optional for older servers; don't block the UI.
-      return null
-    }
-  }
+  const getCapabilities = async (): Promise<GeminiOAuthCapabilities | null> => null
 
   return {
     authUrl,

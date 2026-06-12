@@ -743,7 +743,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyWeChatConnectRedirectURL,
 		SettingKeyWeChatConnectFrontendRedirectURL,
 		SettingKeyBackendModeEnabled,
-		SettingPaymentEnabled,
 		SettingKeyOIDCConnectEnabled,
 		SettingKeyOIDCConnectProviderName,
 		SettingKeyGitHubOAuthEnabled,
@@ -759,7 +758,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorEnabled,
 		SettingKeyChannelMonitorDefaultIntervalSeconds,
 		SettingKeyAvailableChannelsEnabled,
-		SettingKeyAffiliateEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
 	}
@@ -769,24 +767,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		return nil, fmt.Errorf("get public settings: %w", err)
 	}
 
-	linuxDoEnabled := false
-	if raw, ok := settings[SettingKeyLinuxDoConnectEnabled]; ok {
-		linuxDoEnabled = raw == "true"
-	} else {
-		linuxDoEnabled = s.cfg != nil && s.cfg.LinuxDo.Enabled
-	}
-	dingTalkEnabled := false
-	if raw, ok := settings[SettingKeyDingTalkConnectEnabled]; ok {
-		dingTalkEnabled = raw == "true"
-	} else {
-		dingTalkEnabled = s.cfg != nil && s.cfg.DingTalk.Enabled
-	}
-	oidcEnabled := false
-	if raw, ok := settings[SettingKeyOIDCConnectEnabled]; ok {
-		oidcEnabled = raw == "true"
-	} else {
-		oidcEnabled = s.cfg != nil && s.cfg.OIDC.Enabled
-	}
 	oidcProviderName := strings.TrimSpace(settings[SettingKeyOIDCConnectProviderName])
 	if oidcProviderName == "" && s.cfg != nil {
 		oidcProviderName = strings.TrimSpace(s.cfg.OIDC.ProviderName)
@@ -794,9 +774,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	if oidcProviderName == "" {
 		oidcProviderName = "OIDC"
 	}
-	gitHubEnabled := s.emailOAuthPublicEnabled(settings, "github")
-	googleEnabled := s.emailOAuthPublicEnabled(settings, "google")
-	weChatEnabled, weChatOpenEnabled, weChatMPEnabled, weChatMobileEnabled := s.weChatOAuthCapabilitiesFromSettings(settings)
 
 	// Password reset requires email verification to be enabled
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
@@ -808,11 +785,11 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		settings[SettingKeyTableDefaultPageSize],
 		settings[SettingKeyTablePageSizeOptions],
 	)
-	loginAgreementDocuments := parseLoginAgreementDocuments(settings[SettingKeyLoginAgreementDocuments])
 	loginAgreementUpdatedAt := strings.TrimSpace(settings[SettingKeyLoginAgreementUpdatedAt])
 	if loginAgreementUpdatedAt == "" {
 		loginAgreementUpdatedAt = defaultLoginAgreementDate
 	}
+	loginAgreementDocuments := []LoginAgreementDocument{}
 
 	var balanceLowNotifyThreshold float64
 	if v, err := strconv.ParseFloat(settings[SettingKeyBalanceLowNotifyThreshold], 64); err == nil && v >= 0 {
@@ -822,16 +799,16 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	return &PublicSettings{
 		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:               emailVerifyEnabled,
-		ForceEmailOnThirdPartySignup:     settings[SettingKeyForceEmailOnThirdPartySignup] == "true",
+		ForceEmailOnThirdPartySignup:     false,
 		RegistrationEmailSuffixWhitelist: registrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
 		PasswordResetEnabled:             passwordResetEnabled,
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
-		LoginAgreementEnabled:            settings[SettingKeyLoginAgreementEnabled] == "true" && len(loginAgreementDocuments) > 0,
+		LoginAgreementEnabled:            false,
 		LoginAgreementMode:               normalizeLoginAgreementMode(settings[SettingKeyLoginAgreementMode]),
 		LoginAgreementUpdatedAt:          loginAgreementUpdatedAt,
-		LoginAgreementRevision:           buildLoginAgreementRevision(loginAgreementUpdatedAt, loginAgreementDocuments),
+		LoginAgreementRevision:           "",
 		LoginAgreementDocuments:          loginAgreementDocuments,
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
@@ -849,18 +826,17 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TablePageSizeOptions:             tablePageSizeOptions,
 		CustomMenuItems:                  settings[SettingKeyCustomMenuItems],
 		CustomEndpoints:                  settings[SettingKeyCustomEndpoints],
-		LinuxDoOAuthEnabled:              linuxDoEnabled,
-		DingTalkOAuthEnabled:             dingTalkEnabled,
-		WeChatOAuthEnabled:               weChatEnabled,
-		WeChatOAuthOpenEnabled:           weChatOpenEnabled,
-		WeChatOAuthMPEnabled:             weChatMPEnabled,
-		WeChatOAuthMobileEnabled:         weChatMobileEnabled,
+		LinuxDoOAuthEnabled:              false,
+		DingTalkOAuthEnabled:             false,
+		WeChatOAuthEnabled:               false,
+		WeChatOAuthOpenEnabled:           false,
+		WeChatOAuthMPEnabled:             false,
+		WeChatOAuthMobileEnabled:         false,
 		BackendModeEnabled:               settings[SettingKeyBackendModeEnabled] == "true",
-		PaymentEnabled:                   settings[SettingPaymentEnabled] == "true",
-		OIDCOAuthEnabled:                 oidcEnabled,
+		OIDCOAuthEnabled:                 false,
 		OIDCOAuthProviderName:            oidcProviderName,
-		GitHubOAuthEnabled:               gitHubEnabled,
-		GoogleOAuthEnabled:               googleEnabled,
+		GitHubOAuthEnabled:               false,
+		GoogleOAuthEnabled:               false,
 		BalanceLowNotifyEnabled:          settings[SettingKeyBalanceLowNotifyEnabled] == "true",
 		AccountQuotaNotifyEnabled:        settings[SettingKeyAccountQuotaNotifyEnabled] == "true",
 		BalanceLowNotifyThreshold:        balanceLowNotifyThreshold,
@@ -870,8 +846,6 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ChannelMonitorDefaultIntervalSeconds: parseChannelMonitorInterval(settings[SettingKeyChannelMonitorDefaultIntervalSeconds]),
 
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
-
-		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
 
 		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
 
@@ -1174,7 +1148,6 @@ type PublicSettingsInjectionPayload struct {
 	GitHubOAuthEnabled               bool                     `json:"github_oauth_enabled"`
 	GoogleOAuthEnabled               bool                     `json:"google_oauth_enabled"`
 	BackendModeEnabled               bool                     `json:"backend_mode_enabled"`
-	PaymentEnabled                   bool                     `json:"payment_enabled"`
 	Version                          string                   `json:"version"`
 	BalanceLowNotifyEnabled          bool                     `json:"balance_low_notify_enabled"`
 	AccountQuotaNotifyEnabled        bool                     `json:"account_quota_notify_enabled"`
@@ -1187,7 +1160,6 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
-	AffiliateEnabled                     bool `json:"affiliate_enabled"`
 	RiskControlEnabled                   bool `json:"risk_control_enabled"`
 	AllowUserViewErrorRequests           bool `json:"allow_user_view_error_requests"`
 }
@@ -1240,7 +1212,6 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		GitHubOAuthEnabled:               settings.GitHubOAuthEnabled,
 		GoogleOAuthEnabled:               settings.GoogleOAuthEnabled,
 		BackendModeEnabled:               settings.BackendModeEnabled,
-		PaymentEnabled:                   settings.PaymentEnabled,
 		Version:                          s.version,
 		BalanceLowNotifyEnabled:          settings.BalanceLowNotifyEnabled,
 		AccountQuotaNotifyEnabled:        settings.AccountQuotaNotifyEnabled,
@@ -1250,7 +1221,6 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
-		AffiliateEnabled:                     settings.AffiliateEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
 	}, nil
@@ -1622,16 +1592,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		normalizedWhitelist = []string{}
 	}
 	settings.RegistrationEmailSuffixWhitelist = normalizedWhitelist
-	alipaySource, err := normalizeVisibleMethodSettingSource("alipay", settings.PaymentVisibleMethodAlipaySource, settings.PaymentVisibleMethodAlipayEnabled)
-	if err != nil {
-		return nil, err
-	}
-	wxpaySource, err := normalizeVisibleMethodSettingSource("wxpay", settings.PaymentVisibleMethodWxpaySource, settings.PaymentVisibleMethodWxpayEnabled)
-	if err != nil {
-		return nil, err
-	}
-	settings.PaymentVisibleMethodAlipaySource = alipaySource
-	settings.PaymentVisibleMethodWxpaySource = wxpaySource
 	settings.WeChatConnectAppID = strings.TrimSpace(settings.WeChatConnectAppID)
 	settings.WeChatConnectAppSecret = strings.TrimSpace(settings.WeChatConnectAppSecret)
 	settings.WeChatConnectOpenAppID = strings.TrimSpace(firstNonEmpty(settings.WeChatConnectOpenAppID, settings.WeChatConnectAppID))
@@ -1834,26 +1794,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// 默认配置
 	updates[SettingKeyDefaultConcurrency] = strconv.Itoa(settings.DefaultConcurrency)
 	updates[SettingKeyDefaultBalance] = strconv.FormatFloat(settings.DefaultBalance, 'f', 8, 64)
-	settings.AffiliateRebateRate = clampAffiliateRebateRate(settings.AffiliateRebateRate)
-	updates[SettingKeyAffiliateRebateRate] = strconv.FormatFloat(settings.AffiliateRebateRate, 'f', 8, 64)
-	if settings.AffiliateRebateFreezeHours < 0 {
-		settings.AffiliateRebateFreezeHours = AffiliateRebateFreezeHoursDefault
-	}
-	if settings.AffiliateRebateFreezeHours > AffiliateRebateFreezeHoursMax {
-		settings.AffiliateRebateFreezeHours = AffiliateRebateFreezeHoursMax
-	}
-	updates[SettingKeyAffiliateRebateFreezeHours] = strconv.Itoa(settings.AffiliateRebateFreezeHours)
-	if settings.AffiliateRebateDurationDays < 0 {
-		settings.AffiliateRebateDurationDays = AffiliateRebateDurationDaysDefault
-	}
-	if settings.AffiliateRebateDurationDays > AffiliateRebateDurationDaysMax {
-		settings.AffiliateRebateDurationDays = AffiliateRebateDurationDaysMax
-	}
-	updates[SettingKeyAffiliateRebateDurationDays] = strconv.Itoa(settings.AffiliateRebateDurationDays)
-	if settings.AffiliateRebatePerInviteeCap < 0 {
-		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
-	}
-	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -1889,9 +1829,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// Available channels feature switch
 	updates[SettingKeyAvailableChannelsEnabled] = strconv.FormatBool(settings.AvailableChannelsEnabled)
 
-	// Affiliate (邀请返利) feature switch
-	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
-
 	// 风控中心功能开关
 	updates[SettingKeyRiskControlEnabled] = strconv.FormatBool(settings.RiskControlEnabled)
 
@@ -1914,10 +1851,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyAntigravityUserAgentVersion] = antigravity.NormalizeUserAgentVersion(settings.AntigravityUserAgentVersion)
 	updates[SettingKeyOpenAICodexUserAgent] = strings.TrimSpace(settings.OpenAICodexUserAgent)
 	updates[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] = strconv.FormatBool(settings.OpenAIAllowClaudeCodeCodexPlugin)
-	updates[SettingPaymentVisibleMethodAlipaySource] = settings.PaymentVisibleMethodAlipaySource
-	updates[SettingPaymentVisibleMethodWxpaySource] = settings.PaymentVisibleMethodWxpaySource
-	updates[SettingPaymentVisibleMethodAlipayEnabled] = strconv.FormatBool(settings.PaymentVisibleMethodAlipayEnabled)
-	updates[SettingPaymentVisibleMethodWxpayEnabled] = strconv.FormatBool(settings.PaymentVisibleMethodWxpayEnabled)
 	updates[openAIAdvancedSchedulerSettingKey] = strconv.FormatBool(settings.OpenAIAdvancedSchedulerEnabled)
 
 	// 余额、订阅到期与账号限额通知
@@ -2388,78 +2321,6 @@ func (s *SettingService) GetCustomMenuItemsRaw(ctx context.Context) string {
 	return value
 }
 
-// IsAffiliateEnabled 检查是否启用邀请返利功能（总开关）
-func (s *SettingService) IsAffiliateEnabled(ctx context.Context) bool {
-	value, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateEnabled)
-	if err != nil {
-		return false // 默认关闭
-	}
-	return value == "true"
-}
-
-// GetAffiliateRebateRatePercent 读取并 clamp 全局返利比例。
-// 解析失败、缺失或越界都回退到 AffiliateRebateRateDefault — 该比例从不抛错，
-// 调用方只关心一个可用的数值。
-func (s *SettingService) GetAffiliateRebateRatePercent(ctx context.Context) float64 {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateRate)
-	if err != nil {
-		return AffiliateRebateRateDefault
-	}
-	rate, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
-	if err != nil || math.IsNaN(rate) || math.IsInf(rate, 0) {
-		return AffiliateRebateRateDefault
-	}
-	return clampAffiliateRebateRate(rate)
-}
-
-// GetAffiliateRebateFreezeHours 返回返利冻结期（小时）。
-// 返回 0 表示不冻结（向后兼容）。
-func (s *SettingService) GetAffiliateRebateFreezeHours(ctx context.Context) int {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateFreezeHours)
-	if err != nil {
-		return AffiliateRebateFreezeHoursDefault
-	}
-	hours, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil || hours < 0 {
-		return AffiliateRebateFreezeHoursDefault
-	}
-	if hours > AffiliateRebateFreezeHoursMax {
-		return AffiliateRebateFreezeHoursMax
-	}
-	return hours
-}
-
-// GetAffiliateRebateDurationDays 返回返利有效期（天）。
-// 返回 0 表示永久有效。
-func (s *SettingService) GetAffiliateRebateDurationDays(ctx context.Context) int {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebateDurationDays)
-	if err != nil {
-		return AffiliateRebateDurationDaysDefault
-	}
-	days, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil || days < 0 {
-		return AffiliateRebateDurationDaysDefault
-	}
-	if days > AffiliateRebateDurationDaysMax {
-		return AffiliateRebateDurationDaysMax
-	}
-	return days
-}
-
-// GetAffiliateRebatePerInviteeCap 返回单人返利上限。
-// 返回 0 表示无上限。
-func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) float64 {
-	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateRebatePerInviteeCap)
-	if err != nil {
-		return AffiliateRebatePerInviteeCapDefault
-	}
-	cap, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
-	if err != nil || cap < 0 || math.IsNaN(cap) || math.IsInf(cap, 0) {
-		return AffiliateRebatePerInviteeCapDefault
-	}
-	return cap
-}
-
 // IsPasswordResetEnabled 检查是否启用密码重置功能
 // 要求：必须同时开启邮件验证
 func (s *SettingService) IsPasswordResetEnabled(ctx context.Context) bool {
@@ -2603,7 +2464,7 @@ func (s *SettingService) GetAuthSourceDefaultSettings(ctx context.Context) (*Aut
 		GitHub:                       parseProviderDefaultGrantSettings(settings, gitHubAuthSourceDefaultKeys),
 		Google:                       parseProviderDefaultGrantSettings(settings, googleAuthSourceDefaultKeys),
 		DingTalk:                     parseProviderDefaultGrantSettings(settings, dingTalkAuthSourceDefaultKeys),
-		ForceEmailOnThirdPartySignup: settings[SettingKeyForceEmailOnThirdPartySignup] == "true",
+		ForceEmailOnThirdPartySignup: false,
 	}, nil
 }
 
@@ -2746,10 +2607,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyOIDCConnectUserInfoUsernamePath:           "",
 		SettingKeyDefaultConcurrency:                        strconv.Itoa(s.cfg.Default.UserConcurrency),
 		SettingKeyDefaultBalance:                            strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
-		SettingKeyAffiliateRebateRate:                       strconv.FormatFloat(AffiliateRebateRateDefault, 'f', 8, 64),
-		SettingKeyAffiliateRebateFreezeHours:                strconv.Itoa(AffiliateRebateFreezeHoursDefault),
-		SettingKeyAffiliateRebateDurationDays:               strconv.Itoa(AffiliateRebateDurationDaysDefault),
-		SettingKeyAffiliateRebatePerInviteeCap:              strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
 		SettingKeyDefaultUserRPMLimit:                       "0",
 		SettingKeyDefaultSubscriptions:                      "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:             "0",
@@ -2813,9 +2670,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// Available channels feature (default disabled; opt-in)
 		SettingKeyAvailableChannelsEnabled: "false",
 
-		// Affiliate (邀请返利) feature (default disabled; opt-in)
-		SettingKeyAffiliateEnabled: "false",
-
 		// 风控中心功能（默认关闭，显式启用）
 		SettingKeyRiskControlEnabled: "false",
 
@@ -2829,10 +2683,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyRewriteMessageCacheControl:         strconv.FormatBool(s.defaultRewriteMessageCacheControl()),
 		SettingKeyAntigravityUserAgentVersion:        "",
 		SettingKeyOpenAICodexUserAgent:               "",
-		SettingPaymentVisibleMethodAlipaySource:      "",
-		SettingPaymentVisibleMethodWxpaySource:       "",
-		SettingPaymentVisibleMethodAlipayEnabled:     "false",
-		SettingPaymentVisibleMethodWxpayEnabled:      "false",
 		openAIAdvancedSchedulerSettingKey:            "false",
 
 		SettingKeyAllowUserViewErrorRequests: "false",
@@ -2844,11 +2694,11 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 // parseSettings 解析设置到结构体
 func (s *SettingService) parseSettings(settings map[string]string) *SystemSettings {
 	emailVerifyEnabled := settings[SettingKeyEmailVerifyEnabled] == "true"
-	loginAgreementDocuments := parseLoginAgreementDocuments(settings[SettingKeyLoginAgreementDocuments])
 	loginAgreementUpdatedAt := strings.TrimSpace(settings[SettingKeyLoginAgreementUpdatedAt])
 	if loginAgreementUpdatedAt == "" {
 		loginAgreementUpdatedAt = defaultLoginAgreementDate
 	}
+	loginAgreementDocuments := []LoginAgreementDocument{}
 	apiKeyACLTrustForwardedIP := false
 	if value, ok := settings[SettingKeyAPIKeyACLTrustForwardedIP]; ok {
 		apiKeyACLTrustForwardedIP = value == "true"
@@ -2864,7 +2714,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		FrontendURL:                      settings[SettingKeyFrontendURL],
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
-		LoginAgreementEnabled:            settings[SettingKeyLoginAgreementEnabled] == "true",
+		LoginAgreementEnabled:            false,
 		LoginAgreementMode:               normalizeLoginAgreementMode(settings[SettingKeyLoginAgreementMode]),
 		LoginAgreementUpdatedAt:          loginAgreementUpdatedAt,
 		LoginAgreementDocuments:          loginAgreementDocuments,
@@ -2919,26 +2769,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.DefaultBalance = balance
 	} else {
 		result.DefaultBalance = s.cfg.Default.UserBalance
-	}
-	if rebateRate, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebateRate], 64); err == nil {
-		result.AffiliateRebateRate = clampAffiliateRebateRate(rebateRate)
-	} else {
-		result.AffiliateRebateRate = AffiliateRebateRateDefault
-	}
-	if freezeHours, err := strconv.Atoi(settings[SettingKeyAffiliateRebateFreezeHours]); err == nil && freezeHours >= 0 {
-		if freezeHours > AffiliateRebateFreezeHoursMax {
-			freezeHours = AffiliateRebateFreezeHoursMax
-		}
-		result.AffiliateRebateFreezeHours = freezeHours
-	}
-	if durationDays, err := strconv.Atoi(settings[SettingKeyAffiliateRebateDurationDays]); err == nil && durationDays >= 0 {
-		if durationDays > AffiliateRebateDurationDaysMax {
-			durationDays = AffiliateRebateDurationDaysMax
-		}
-		result.AffiliateRebateDurationDays = durationDays
-	}
-	if perInviteeCap, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebatePerInviteeCap], 64); err == nil && perInviteeCap >= 0 {
-		result.AffiliateRebatePerInviteeCap = perInviteeCap
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 
@@ -3322,8 +3152,18 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// Available channels feature (default: disabled; strict true)
 	result.AvailableChannelsEnabled = settings[SettingKeyAvailableChannelsEnabled] == "true"
 
-	// Affiliate (邀请返利) feature (default: disabled; strict true)
-	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
+	// Removed sign-in/binding providers stay persisted for
+	// compatibility, but are no longer exposed as enabled features.
+	result.LinuxDoConnectEnabled = false
+	result.DingTalkConnectEnabled = false
+	result.WeChatConnectEnabled = false
+	result.WeChatConnectOpenEnabled = false
+	result.WeChatConnectMPEnabled = false
+	result.WeChatConnectMobileEnabled = false
+	result.OIDCConnectEnabled = false
+	result.GitHubOAuthEnabled = false
+	result.GoogleOAuthEnabled = false
+	result.ForceEmailOnThirdPartySignup = false
 
 	// 风控中心功能（默认关闭，严格 true 才启用）
 	result.RiskControlEnabled = settings[SettingKeyRiskControlEnabled] == "true"
@@ -3360,10 +3200,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 			result.WebSearchEmulationEnabled = wsCfg.Enabled && len(wsCfg.Providers) > 0
 		}
 	}
-	result.PaymentVisibleMethodAlipaySource = NormalizeVisibleMethodSource("alipay", settings[SettingPaymentVisibleMethodAlipaySource])
-	result.PaymentVisibleMethodWxpaySource = NormalizeVisibleMethodSource("wxpay", settings[SettingPaymentVisibleMethodWxpaySource])
-	result.PaymentVisibleMethodAlipayEnabled = settings[SettingPaymentVisibleMethodAlipayEnabled] == "true"
-	result.PaymentVisibleMethodWxpayEnabled = settings[SettingPaymentVisibleMethodWxpayEnabled] == "true"
 	result.OpenAIAdvancedSchedulerEnabled = settings[openAIAdvancedSchedulerSettingKey] == "true"
 
 	// 余额、订阅到期与账号限额通知
@@ -3398,19 +3234,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	return result
 }
 
-func clampAffiliateRebateRate(value float64) float64 {
-	if math.IsNaN(value) || math.IsInf(value, 0) {
-		return AffiliateRebateRateDefault
-	}
-	if value < AffiliateRebateRateMin {
-		return AffiliateRebateRateMin
-	}
-	if value > AffiliateRebateRateMax {
-		return AffiliateRebateRateMax
-	}
-	return value
-}
-
 func isFalseSettingValue(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "false", "0", "off", "disabled":
@@ -3418,23 +3241,6 @@ func isFalseSettingValue(value string) bool {
 	default:
 		return false
 	}
-}
-
-func normalizeVisibleMethodSettingSource(method, source string, enabled bool) (string, error) {
-	_ = enabled
-	source = strings.TrimSpace(source)
-	if source == "" {
-		return "", nil
-	}
-
-	normalized := NormalizeVisibleMethodSource(method, source)
-	if normalized == "" {
-		return "", infraerrors.BadRequest(
-			"INVALID_PAYMENT_VISIBLE_METHOD_SOURCE",
-			fmt.Sprintf("%s source must be one of the supported payment providers", method),
-		)
-	}
-	return normalized, nil
 }
 
 func parseDefaultSubscriptions(raw string) []DefaultSubscriptionSetting {

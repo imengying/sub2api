@@ -7,7 +7,6 @@ import (
 // AdminHandlers contains all admin-related HTTP handlers
 type AdminHandlers struct {
 	Dashboard              *admin.DashboardHandler
-	User                   *admin.UserHandler
 	Group                  *admin.GroupHandler
 	Account                *admin.AccountHandler
 	Announcement           *admin.AnnouncementHandler
@@ -18,14 +17,10 @@ type AdminHandlers struct {
 	GeminiOAuth            *admin.GeminiOAuthHandler
 	AntigravityOAuth       *admin.AntigravityOAuthHandler
 	Proxy                  *admin.ProxyHandler
-	Redeem                 *admin.RedeemHandler
-	Promo                  *admin.PromoHandler
 	Setting                *admin.SettingHandler
 	Ops                    *admin.OpsHandler
 	System                 *admin.SystemHandler
-	Subscription           *admin.SubscriptionHandler
 	Usage                  *admin.UsageHandler
-	UserAttribute          *admin.UserAttributeHandler
 	ErrorPassthrough       *admin.ErrorPassthroughHandler
 	TLSFingerprintProfile  *admin.TLSFingerprintProfileHandler
 	APIKey                 *admin.AdminAPIKeyHandler
@@ -34,8 +29,6 @@ type AdminHandlers struct {
 	ChannelMonitor         *admin.ChannelMonitorHandler
 	ChannelMonitorTemplate *admin.ChannelMonitorRequestTemplateHandler
 	ContentModeration      *admin.ContentModerationHandler
-	Payment                *admin.PaymentHandler
-	Affiliate              *admin.AffiliateHandler
 	Compliance             *admin.ComplianceHandler
 }
 
@@ -45,8 +38,6 @@ type Handlers struct {
 	User             *UserHandler
 	APIKey           *APIKeyHandler
 	Usage            *UsageHandler
-	Redeem           *RedeemHandler
-	Subscription     *SubscriptionHandler
 	Announcement     *AnnouncementHandler
 	ChannelMonitor   *ChannelMonitorUserHandler
 	Admin            *AdminHandlers
@@ -54,8 +45,6 @@ type Handlers struct {
 	OpenAIGateway    *OpenAIGatewayHandler
 	Setting          *SettingHandler
 	Totp             *TotpHandler
-	Payment          *PaymentHandler
-	PaymentWebhook   *PaymentWebhookHandler
 	AvailableChannel *AvailableChannelHandler
 }
 
