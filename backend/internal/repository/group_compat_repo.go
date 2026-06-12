@@ -73,6 +73,10 @@ func (userGroupRateRepositoryCompat) GetByUserID(ctx context.Context, userID int
 	return nil, nil
 }
 
+func (userGroupRateRepositoryCompat) GetByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error) {
+	return nil, nil
+}
+
 func (userGroupRateRepositoryCompat) GetByGroupID(ctx context.Context, groupID int64) ([]service.UserGroupRateEntry, error) {
 	return nil, nil
 }

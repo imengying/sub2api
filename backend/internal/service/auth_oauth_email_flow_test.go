@@ -130,7 +130,7 @@ func newOAuthEmailFlowAuthService(
 	settingService := NewSettingService(&settingRepoStub{values: settings}, cfg)
 	emailService := NewEmailService(&settingRepoStub{values: settings}, emailCache)
 
-	return NewAuthService(
+	svc := NewAuthService(
 		nil,
 		userRepo,
 		refreshTokenCache,
@@ -142,6 +142,8 @@ func newOAuthEmailFlowAuthService(
 		nil,
 		quotaRepo, // 替换原来的 nil
 	)
+	svc.redeemRepo = redeemRepo
+	return svc
 }
 
 func TestRegisterOAuthEmailAccountRollsBackCreatedUserWhenTokenPairGenerationFails(t *testing.T) {

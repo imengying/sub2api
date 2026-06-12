@@ -70,6 +70,7 @@ type AuthService struct {
 	emailService          *EmailService
 	turnstileService      *TurnstileService
 	emailQueueService     *EmailQueueService
+	redeemRepo            RedeemCodeRepository
 	defaultSubAssigner    DefaultSubscriptionAssigner
 	userPlatformQuotaRepo UserPlatformQuotaRepository
 }

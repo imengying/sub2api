@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
@@ -106,6 +107,7 @@ type GroupRepository interface {
 
 type UserGroupRateRepository interface {
 	GetByUserID(ctx context.Context, userID int64) (map[int64]float64, error)
+	GetByUserAndGroup(ctx context.Context, userID, groupID int64) (*float64, error)
 	GetByGroupID(ctx context.Context, groupID int64) ([]UserGroupRateEntry, error)
 	GetRPMOverrideByUserAndGroup(ctx context.Context, userID, groupID int64) (*int, error)
 	SyncUserGroupRates(ctx context.Context, userID int64, rates map[int64]*float64) error
@@ -150,4 +152,29 @@ func (g *Group) CustomModelsListEnabled() bool {
 
 func IsGroupContextValid(group *Group) bool {
 	return group != nil && group.Hydrated
+}
+
+func normalizeGroupModelsListConfig(input GroupModelsListConfig) GroupModelsListConfig {
+	out := GroupModelsListConfig{Enabled: input.Enabled}
+	if len(input.Models) == 0 {
+		return out
+	}
+
+	seen := make(map[string]struct{}, len(input.Models))
+	out.Models = make([]string, 0, len(input.Models))
+	for _, model := range input.Models {
+		model = strings.TrimSpace(model)
+		if model == "" {
+			continue
+		}
+		if _, ok := seen[model]; ok {
+			continue
+		}
+		seen[model] = struct{}{}
+		out.Models = append(out.Models, model)
+	}
+	if len(out.Models) == 0 {
+		out.Enabled = false
+	}
+	return out
 }
