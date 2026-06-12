@@ -18,16 +18,9 @@ func RegisterAdminRoutes(
 ) {
 	admin := v1.Group("/admin")
 	admin.Use(gin.HandlerFunc(adminAuth))
-	admin.Use(middleware.AdminComplianceGuard(settingService))
 	{
-		// 部署与运营合规确认
-		registerAdminComplianceRoutes(admin, h)
-
 		// 仪表盘
 		registerDashboardRoutes(admin, h)
-
-		// 分组管理
-		registerGroupRoutes(admin, h)
 
 		// 账号管理
 		registerAccountRoutes(admin, h)
@@ -77,14 +70,6 @@ func RegisterAdminRoutes(
 		// 风控中心
 		registerContentModerationRoutes(admin, h)
 
-	}
-}
-
-func registerAdminComplianceRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	compliance := admin.Group("/compliance")
-	{
-		compliance.GET("", h.Admin.Compliance.GetStatus)
-		compliance.POST("/accept", h.Admin.Compliance.Accept)
 	}
 }
 
@@ -210,29 +195,6 @@ func registerDashboardRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		dashboard.POST("/api-keys-usage", h.Admin.Dashboard.GetBatchAPIKeysUsage)
 		dashboard.GET("/user-breakdown", h.Admin.Dashboard.GetUserBreakdown)
 		dashboard.POST("/aggregation/backfill", h.Admin.Dashboard.BackfillAggregation)
-	}
-}
-
-func registerGroupRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	groups := admin.Group("/groups")
-	{
-		groups.GET("", h.Admin.Group.List)
-		groups.GET("/all", h.Admin.Group.GetAll)
-		groups.GET("/usage-summary", h.Admin.Group.GetUsageSummary)
-		groups.GET("/capacity-summary", h.Admin.Group.GetCapacitySummary)
-		groups.PUT("/sort-order", h.Admin.Group.UpdateSortOrder)
-		groups.GET("/:id/models-list-candidates", h.Admin.Group.GetModelsListCandidates)
-		groups.GET("/:id", h.Admin.Group.GetByID)
-		groups.POST("", h.Admin.Group.Create)
-		groups.PUT("/:id", h.Admin.Group.Update)
-		groups.DELETE("/:id", h.Admin.Group.Delete)
-		groups.GET("/:id/stats", h.Admin.Group.GetStats)
-		groups.GET("/:id/rate-multipliers", h.Admin.Group.GetGroupRateMultipliers)
-		groups.PUT("/:id/rate-multipliers", h.Admin.Group.BatchSetGroupRateMultipliers)
-		groups.DELETE("/:id/rate-multipliers", h.Admin.Group.ClearGroupRateMultipliers)
-		groups.PUT("/:id/rpm-overrides", h.Admin.Group.BatchSetGroupRPMOverrides)
-		groups.DELETE("/:id/rpm-overrides", h.Admin.Group.ClearGroupRPMOverrides)
-		groups.GET("/:id/api-keys", h.Admin.Group.GetGroupAPIKeys)
 	}
 }
 
