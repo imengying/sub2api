@@ -145,22 +145,21 @@ func TestEmailOAuthCallbackCreatesPasswordRegistrationSessionForNewEmail(t *test
 		RedirectURL:         "https://app.example/api/v1/auth/oauth/github/callback",
 		FrontendRedirectURL: "/auth/oauth/callback",
 	}, "/auth/oauth/callback", "/dashboard", &emailOAuthProfile{
-		Subject:       "github-aff-user",
-		Email:         "aff-user@example.com",
+		Subject:       "github-extra-user",
+		Email:         "extra-user@example.com",
 		EmailVerified: true,
-		Username:      "aff-user",
+		Username:      "extra-user",
 	})
 
 	require.Equal(t, http.StatusFound, recorder.Code)
 	require.NotContains(t, recorder.Header().Get("Location"), "access_token=")
-	userCount, err := client.User.Query().Where(dbuser.EmailEQ("aff-user@example.com")).Count(ctx)
+	userCount, err := client.User.Query().Where(dbuser.EmailEQ("extra-user@example.com")).Count(ctx)
 	require.NoError(t, err)
 	require.Zero(t, userCount)
 
 	session, err := client.PendingAuthSession.Query().Only(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "aff-user@example.com", session.ResolvedEmail)
-	require.Empty(t, pendingSessionStringValue(session.UpstreamIdentityClaims, "aff_code"))
+	require.Equal(t, "extra-user@example.com", session.ResolvedEmail)
 
 	completion, ok := readCompletionResponse(session.LocalFlowState)
 	require.True(t, ok)
@@ -169,10 +168,10 @@ func TestEmailOAuthCallbackCreatesPasswordRegistrationSessionForNewEmail(t *test
 	require.Equal(t, false, completion["invitation_required"])
 	require.Equal(t, true, completion["create_account_allowed"])
 	require.Equal(t, true, completion["force_email_on_signup"])
-	require.Equal(t, "aff-user@example.com", completion["resolved_email"])
+	require.Equal(t, "extra-user@example.com", completion["resolved_email"])
 }
 
-func TestCompleteEmailOAuthRegistrationIgnoresAffiliateClaims(t *testing.T) {
+func TestCompleteEmailOAuthRegistrationIgnoresExtraClaims(t *testing.T) {
 	handler, client := newOAuthPendingFlowTestHandler(t, true)
 	ctx := context.Background()
 	invitation, err := client.RedeemCode.Create().
@@ -184,21 +183,21 @@ func TestCompleteEmailOAuthRegistrationIgnoresAffiliateClaims(t *testing.T) {
 	require.NoError(t, err)
 
 	session, err := client.PendingAuthSession.Create().
-		SetSessionToken("email-oauth-aff-session-token").
+		SetSessionToken("email-oauth-extra-session-token").
 		SetIntent(oauthIntentLogin).
 		SetProviderType("google").
 		SetProviderKey("google").
-		SetProviderSubject("google-aff-user").
-		SetResolvedEmail("pending-aff@example.com").
+		SetProviderSubject("google-extra-user").
+		SetResolvedEmail("pending-extra@example.com").
 		SetRedirectTo("/dashboard").
-		SetBrowserSessionKey("browser-aff-key").
+		SetBrowserSessionKey("browser-extra-key").
 		SetUpstreamIdentityClaims(map[string]any{
-			"email":            "pending-aff@example.com",
+			"email":            "pending-extra@example.com",
 			"email_verified":   true,
-			"username":         "pending-aff",
+			"username":         "pending-extra",
 			"provider":         "google",
 			"provider_key":     "google",
-			"provider_subject": "google-aff-user",
+			"provider_subject": "google-extra-user",
 		}).
 		SetLocalFlowState(map[string]any{
 			"step":  oauthPendingChoiceStep,
@@ -213,13 +212,13 @@ func TestCompleteEmailOAuthRegistrationIgnoresAffiliateClaims(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/oauth/google/complete-registration", strings.NewReader(`{"password":"secret-123","invitation_code":"INVITE456","email":"tampered@example.com"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: oauthPendingSessionCookieName, Value: encodeCookieValue(session.SessionToken)})
-	req.AddCookie(&http.Cookie{Name: oauthPendingBrowserCookieName, Value: encodeCookieValue("browser-aff-key")})
+	req.AddCookie(&http.Cookie{Name: oauthPendingBrowserCookieName, Value: encodeCookieValue("browser-extra-key")})
 	c.Request = req
 
 	handler.completeEmailOAuthRegistration(c, "google")
 
 	require.Equal(t, http.StatusOK, recorder.Code)
-	user, err := client.User.Query().Where(dbuser.EmailEQ("pending-aff@example.com")).Only(ctx)
+	user, err := client.User.Query().Where(dbuser.EmailEQ("pending-extra@example.com")).Only(ctx)
 	require.NoError(t, err)
 	require.NotEmpty(t, user.PasswordHash)
 	require.NotEqual(t, "secret-123", user.PasswordHash)

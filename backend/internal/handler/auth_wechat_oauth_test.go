@@ -1241,7 +1241,6 @@ func newWeChatOAuthTestHandlerWithSettings(t *testing.T, invitationEnabled bool,
 	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))
 
 	userRepo := &oauthPendingFlowUserRepo{client: client}
-	redeemRepo := repository.NewRedeemCodeRepository(client)
 	cfg := &config.Config{
 		JWT: config.JWTConfig{
 			Secret:                   "test-secret",
@@ -1269,12 +1268,9 @@ func newWeChatOAuthTestHandlerWithSettings(t *testing.T, invitationEnabled bool,
 	authSvc := service.NewAuthService(
 		client,
 		userRepo,
-		redeemRepo,
 		&wechatOAuthRefreshTokenCacheStub{},
 		cfg,
 		settingSvc,
-		nil,
-		nil,
 		nil,
 		nil,
 		nil,

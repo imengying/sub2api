@@ -8,9 +8,7 @@
 --   CREATE TABLE IF NOT EXISTS，对已存在的 settings 表不会重建，导致这部分实例
 --   的 updated_at 列虽然是 NOT NULL，但缺少 SQL DEFAULT。
 --
---   后续 098_migrate_purchase_subscription_to_custom_menu.sql 是项目中唯一使用
---   原生 SQL INSERT INTO settings 的迁移（其余 settings 写入都走 ent / Go 层），
---   因此该 schema 缺陷直到 098 才会触发：
+--   历史上部分直接写 settings 的迁移会触发该 schema 缺陷：
 --     "null value in column \"updated_at\" of relation \"settings\" violates not-null constraint"
 --
 -- 幂等性：
@@ -20,7 +18,7 @@
 --
 -- 这样可以同时兼容：
 --   1. 从未运行过旧版迁移的全新部署（005 已经把列建对，本迁移变成 no-op）。
---   2. 历史损坏实例（本迁移修复缺失的默认值，使后续 098 能够正常 INSERT）。
+--   2. 历史损坏实例（本迁移修复缺失的默认值，使后续 settings 写入能够正常 INSERT）。
 
 ALTER TABLE settings ALTER COLUMN updated_at SET DEFAULT NOW();
 

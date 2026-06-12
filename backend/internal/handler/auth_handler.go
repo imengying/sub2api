@@ -48,7 +48,6 @@ type RegisterRequest struct {
 	Password       string `json:"password" binding:"required,min=6"`
 	VerifyCode     string `json:"verify_code"`
 	TurnstileToken string `json:"turnstile_token"`
-	PromoCode      string `json:"promo_code"`      // 注册优惠码
 	InvitationCode string `json:"invitation_code"` // 邀请码
 }
 
@@ -171,8 +170,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		req.Email,
 		req.Password,
 		req.VerifyCode,
-		req.PromoCode,
 		req.InvitationCode,
+		"",
 		"",
 	)
 	if err != nil {

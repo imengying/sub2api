@@ -136,13 +136,9 @@ func TestAppendAuthSourceDefaultChanges_DetectsPerWindow(t *testing.T) {
 // PUT 发 auth_source_default_email_platform_quotas，GET 能读回相同值（端到端往返）。
 func TestSettingHandler_AuthSourcePlatformQuotas_PutGetRoundTrip(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	repo := &settingHandlerRepoStub{
-		values: map[string]string{
-			service.SettingKeyPromoCodeEnabled: "true",
-		},
-	}
+	repo := &settingHandlerRepoStub{}
 	svc := service.NewSettingService(repo, &config.Config{Default: config.DefaultConfig{UserConcurrency: 5}})
-	handler := NewSettingHandler(svc, nil, nil, nil, nil, nil, nil)
+	handler := NewSettingHandler(svc, nil, nil, nil, nil)
 
 	// PUT：发 email platform quota（openai monthly=20）
 	putBody := map[string]any{

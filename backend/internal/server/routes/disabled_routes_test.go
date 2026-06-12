@@ -50,42 +50,6 @@ func TestDisabledOAuthRoutesAreNotRegistered(t *testing.T) {
 	}
 }
 
-func TestDisabledAffiliateRoutesAreNotRegistered(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	r := gin.New()
-	r.Use(gin.Recovery())
-	v1 := r.Group("/api/v1")
-	RegisterUserRoutes(v1, &handler.Handlers{}, passJWT, nil)
-	RegisterAdminRoutes(v1, &handler.Handlers{Admin: &handler.AdminHandlers{}}, passAdmin, nil)
-
-	cases := []struct {
-		method string
-		path   string
-	}{
-		{http.MethodGet, "/api/v1/user/aff"},
-		{http.MethodPost, "/api/v1/user/aff/transfer"},
-		{http.MethodDelete, "/api/v1/user/account-bindings/linuxdo"},
-		{http.MethodPost, "/api/v1/user/auth-identities/bind/start"},
-		{http.MethodPost, "/api/v1/auth/oauth/bind-token"},
-		{http.MethodGet, "/api/v1/admin/affiliates/invites"},
-		{http.MethodGet, "/api/v1/admin/affiliates/rebates"},
-		{http.MethodGet, "/api/v1/admin/affiliates/transfers"},
-		{http.MethodGet, "/api/v1/admin/affiliates/users"},
-		{http.MethodGet, "/api/v1/admin/affiliates/users/lookup"},
-		{http.MethodPost, "/api/v1/admin/affiliates/users/batch-rate"},
-		{http.MethodGet, "/api/v1/admin/affiliates/users/1/overview"},
-		{http.MethodPut, "/api/v1/admin/affiliates/users/1"},
-		{http.MethodDelete, "/api/v1/admin/affiliates/users/1"},
-	}
-
-	for _, tc := range cases {
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, nil))
-		require.Equal(t, http.StatusNotFound, w.Code, tc.method+" "+tc.path)
-	}
-}
-
 func TestDisabledAnnouncementRoutesAreNotRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

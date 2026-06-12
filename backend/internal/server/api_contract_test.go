@@ -371,97 +371,6 @@ func TestAPIContracts(t *testing.T) {
 			}`,
 		},
 		{
-			name: "GET /api/v1/subscriptions",
-			setup: func(t *testing.T, deps *contractDeps) {
-				t.Helper()
-				// 普通用户订阅接口不应包含 assigned_* / notes 等管理员字段。
-				deps.userSubRepo.SetByUserID(1, []service.UserSubscription{
-					{
-						ID:              501,
-						UserID:          1,
-						GroupID:         10,
-						StartsAt:        deps.now,
-						ExpiresAt:       time.Date(2099, 1, 2, 3, 4, 5, 0, time.UTC), // 使用未来日期避免 normalizeSubscriptionStatus 标记为过期
-						Status:          service.SubscriptionStatusActive,
-						DailyUsageUSD:   1.23,
-						WeeklyUsageUSD:  2.34,
-						MonthlyUsageUSD: 3.45,
-						AssignedBy:      ptr(int64(999)),
-						AssignedAt:      deps.now,
-						Notes:           "admin-note",
-						CreatedAt:       deps.now,
-						UpdatedAt:       deps.now,
-					},
-				})
-			},
-			method:     http.MethodGet,
-			path:       "/api/v1/subscriptions",
-			wantStatus: http.StatusOK,
-			wantJSON: `{
-				"code": 0,
-				"message": "success",
-				"data": [
-					{
-						"id": 501,
-						"user_id": 1,
-						"group_id": 10,
-						"starts_at": "2025-01-02T03:04:05Z",
-						"expires_at": "2099-01-02T03:04:05Z",
-						"status": "active",
-						"daily_window_start": null,
-						"weekly_window_start": null,
-						"monthly_window_start": null,
-						"daily_usage_usd": 1.23,
-						"weekly_usage_usd": 2.34,
-						"monthly_usage_usd": 3.45,
-						"created_at": "2025-01-02T03:04:05Z",
-						"updated_at": "2025-01-02T03:04:05Z"
-					}
-				]
-			}`,
-		},
-		{
-			name: "GET /api/v1/redeem/history",
-			setup: func(t *testing.T, deps *contractDeps) {
-				t.Helper()
-				// 普通用户兑换历史不应包含 notes 等内部字段。
-				deps.redeemRepo.SetByUser(1, []service.RedeemCode{
-					{
-						ID:        900,
-						Code:      "CODE-123",
-						Type:      service.RedeemTypeBalance,
-						Value:     1.25,
-						Status:    service.StatusUsed,
-						UsedBy:    ptr(int64(1)),
-						UsedAt:    ptr(deps.now),
-						Notes:     "internal-note",
-						CreatedAt: deps.now,
-					},
-				})
-			},
-			method:     http.MethodGet,
-			path:       "/api/v1/redeem/history",
-			wantStatus: http.StatusOK,
-			wantJSON: `{
-				"code": 0,
-				"message": "success",
-				"data": [
-					{
-						"id": 900,
-						"code": "CODE-123",
-						"type": "balance",
-						"value": 1.25,
-						"status": "used",
-						"used_by": 1,
-						"used_at": "2025-01-02T03:04:05Z",
-						"created_at": "2025-01-02T03:04:05Z",
-						"group_id": null,
-						"validity_days": 0
-					}
-				]
-			}`,
-		},
-		{
 			name: "GET /api/v1/usage/stats",
 			setup: func(t *testing.T, deps *contractDeps) {
 				t.Helper()
@@ -609,7 +518,6 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyRegistrationEnabled:              "true",
 					service.SettingKeyEmailVerifyEnabled:               "false",
 					service.SettingKeyRegistrationEmailSuffixWhitelist: "[]",
-					service.SettingKeyPromoCodeEnabled:                 "true",
 
 					service.SettingKeySMTPHost:     "smtp.example.com",
 					service.SettingKeySMTPPort:     "587",
@@ -661,10 +569,6 @@ func TestAPIContracts(t *testing.T) {
 					service.SettingKeyOpsRealtimeMonitoringEnabled:   "true",
 					service.SettingKeyOpsQueryModeDefault:            "auto",
 					service.SettingKeyOpsMetricsIntervalSeconds:      "60",
-					service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
-					service.SettingPaymentVisibleMethodWxpaySource:   service.VisibleMethodSourceOfficialWechat,
-					service.SettingPaymentVisibleMethodAlipayEnabled: "true",
-					service.SettingPaymentVisibleMethodWxpayEnabled:  "false",
 					"openai_advanced_scheduler_enabled":              "true",
 				})
 			},
@@ -678,7 +582,6 @@ func TestAPIContracts(t *testing.T) {
 					"registration_enabled": true,
 					"email_verify_enabled": false,
 					"registration_email_suffix_whitelist": [],
-					"promo_code_enabled": true,
 					"password_reset_enabled": false,
 						"frontend_url": "",
 						"totp_enabled": false,
@@ -806,10 +709,6 @@ func TestAPIContracts(t *testing.T) {
 					"auth_source_default_oidc_platform_quotas": null,
 					"auth_source_default_wechat_platform_quotas": null,
 					"auth_source_default_dingtalk_platform_quotas": null,
-					"affiliate_rebate_rate": 20,
-					"affiliate_rebate_freeze_hours": 0,
-					"affiliate_rebate_duration_days": 0,
-					"affiliate_rebate_per_invitee_cap": 0,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -819,11 +718,9 @@ func TestAPIContracts(t *testing.T) {
 						"fallback_model_openai": "gpt-4o",
 						"enable_identity_patch": true,
 						"identity_patch_prompt": "",
-						"invitation_code_enabled": false,
-						"home_content": "",
+					"invitation_code_enabled": false,
+					"home_content": "",
 					"hide_ccs_import_button": false,
-					"purchase_subscription_enabled": false,
-					"purchase_subscription_url": "",
 					"table_default_page_size": 20,
 						"table_page_size_options": [10, 20, 50, 100],
 					"min_claude_code_version": "",
@@ -837,10 +734,6 @@ func TestAPIContracts(t *testing.T) {
 					"enable_fingerprint_unification": true,
 					"enable_metadata_passthrough": false,
 					"web_search_emulation_enabled": false,
-					"payment_visible_method_alipay_source": "easypay_alipay",
-					"payment_visible_method_wxpay_source": "official_wxpay",
-					"payment_visible_method_alipay_enabled": true,
-					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": true,
 					"openai_codex_user_agent":           "",
 					"openai_allow_claude_code_codex_plugin": false,
@@ -849,27 +742,6 @@ func TestAPIContracts(t *testing.T) {
 					},
 					"custom_menu_items": [],
 					"custom_endpoints": [],
-					"payment_enabled": false,
-					"payment_min_amount": 0,
-					"payment_max_amount": 0,
-					"payment_daily_limit": 0,
-					"payment_order_timeout_minutes": 0,
-					"payment_max_pending_orders": 0,
-					"payment_balance_disabled": false,
-					"payment_balance_recharge_multiplier": 0,
-					"payment_recharge_fee_rate": 0,
-					"payment_load_balance_strategy": "",
-					"payment_product_name_prefix": "",
-					"payment_product_name_suffix": "",
-					"payment_help_image_url": "",
-					"payment_help_text": "",
-					"payment_enabled_types": null,
-					"payment_cancel_rate_limit_enabled": false,
-					"payment_cancel_rate_limit_max": 0,
-					"payment_cancel_rate_limit_window": 0,
-					"payment_cancel_rate_limit_unit": "",
-					"payment_cancel_rate_limit_window_mode": "",
-					"payment_alipay_force_qrcode": false,
 					"balance_low_notify_enabled": false,
 					"account_quota_notify_enabled": false,
 					"subscription_expiry_notify_enabled": true,
@@ -880,7 +752,6 @@ func TestAPIContracts(t *testing.T) {
 					"channel_monitor_default_interval_seconds": 60,
 					"available_channels_enabled": false,
 					"risk_control_enabled": false,
-					"affiliate_enabled": false,
 					"wechat_connect_enabled": false,
 					"wechat_connect_app_id": "",
 					"wechat_connect_app_secret_configured": false,
@@ -945,7 +816,6 @@ func TestAPIContracts(t *testing.T) {
 					"registration_enabled": true,
 					"email_verify_enabled": false,
 					"registration_email_suffix_whitelist": [],
-					"promo_code_enabled": true,
 					"password_reset_enabled": false,
 					"frontend_url": "",
 						"invitation_code_enabled": false,
@@ -1026,8 +896,6 @@ func TestAPIContracts(t *testing.T) {
 					"doc_url": "",
 					"home_content": "",
 					"hide_ccs_import_button": false,
-					"purchase_subscription_enabled": false,
-					"purchase_subscription_url": "",
 					"table_default_page_size": 20,
 					"table_page_size_options": [10, 20, 50],
 					"default_platform_quotas": {"anthropic":{"daily":null,"weekly":null,"monthly":null},"antigravity":{"daily":null,"weekly":null,"monthly":null},"gemini":{"daily":null,"weekly":null,"monthly":null},"openai":{"daily":null,"weekly":null,"monthly":null}},
@@ -1042,10 +910,6 @@ func TestAPIContracts(t *testing.T) {
 					"custom_endpoints": [],
 					"default_concurrency": 0,
 					"default_balance": 0,
-					"affiliate_rebate_rate": 20,
-					"affiliate_rebate_freeze_hours": 0,
-					"affiliate_rebate_duration_days": 0,
-					"affiliate_rebate_per_invitee_cap": 0,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -1070,37 +934,12 @@ func TestAPIContracts(t *testing.T) {
 					"rewrite_message_cache_control": false,
 					"antigravity_user_agent_version": "",
 					"web_search_emulation_enabled": false,
-					"payment_visible_method_alipay_source": "",
-					"payment_visible_method_wxpay_source": "",
-					"payment_visible_method_alipay_enabled": false,
-					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": false,
 					"openai_codex_user_agent":           "",
 					"openai_allow_claude_code_codex_plugin": false,
 					"openai_fast_policy_settings": {
 						"rules": []
 					},
-					"payment_enabled": false,
-					"payment_min_amount": 0,
-					"payment_max_amount": 0,
-					"payment_daily_limit": 0,
-					"payment_order_timeout_minutes": 0,
-					"payment_max_pending_orders": 0,
-					"payment_enabled_types": null,
-					"payment_balance_disabled": false,
-					"payment_balance_recharge_multiplier": 0,
-					"payment_recharge_fee_rate": 0,
-					"payment_load_balance_strategy": "",
-					"payment_product_name_prefix": "",
-					"payment_product_name_suffix": "",
-					"payment_help_image_url": "",
-					"payment_help_text": "",
-					"payment_cancel_rate_limit_enabled": false,
-					"payment_cancel_rate_limit_max": 0,
-					"payment_cancel_rate_limit_window": 0,
-					"payment_cancel_rate_limit_unit": "",
-					"payment_cancel_rate_limit_window_mode": "",
-					"payment_alipay_force_qrcode": false,
 					"balance_low_notify_enabled": false,
 					"account_quota_notify_enabled": false,
 					"subscription_expiry_notify_enabled": true,
@@ -1111,7 +950,6 @@ func TestAPIContracts(t *testing.T) {
 					"channel_monitor_default_interval_seconds": 60,
 					"available_channels_enabled": false,
 					"risk_control_enabled": false,
-					"affiliate_enabled": false,
 					"wechat_connect_enabled": false,
 					"wechat_connect_app_id": "wx-open-config",
 					"wechat_connect_app_secret_configured": true,
@@ -1240,7 +1078,6 @@ func TestPublicSettingsContractDisablesThirdPartyLogin(t *testing.T) {
 		service.SettingKeyWeChatConnectOpenAppID:           "wx-open",
 		service.SettingKeyWeChatConnectOpenAppSecret:       "wx-open-secret",
 		service.SettingKeyWeChatConnectFrontendRedirectURL: "/auth/wechat/callback",
-		service.SettingKeyAffiliateEnabled:                 "true",
 	})
 
 	status, body := doRequest(t, deps.router, http.MethodGet, "/api/v1/settings/public", "", nil)
@@ -1263,7 +1100,6 @@ func TestPublicSettingsContractDisablesThirdPartyLogin(t *testing.T) {
 		"oidc_oauth_enabled",
 		"github_oauth_enabled",
 		"google_oauth_enabled",
-		"affiliate_enabled",
 	} {
 		require.Equal(t, false, resp.Data[key], key)
 	}
@@ -1329,19 +1165,15 @@ func newContractDeps(t *testing.T) *contractDeps {
 	usageService := service.NewUsageService(usageRepo, userRepo, nil, nil)
 
 	subscriptionService := service.NewSubscriptionService(groupRepo, userSubRepo, nil, nil, cfg)
-	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService)
-
-	redeemService := service.NewRedeemService(redeemRepo, userRepo, subscriptionService, nil, nil, nil, nil, nil)
-	redeemHandler := handler.NewRedeemHandler(redeemService)
 
 	settingRepo := newStubSettingRepo()
 	settingService := service.NewSettingService(settingRepo, cfg)
 
 	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil, nil)
+	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, nil)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, nil, nil)
-	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil, nil, nil)
+	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil)
 	adminAccountHandler := adminhandler.NewAccountHandler(adminService, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	publicSettingHandler := handler.NewSettingHandler(settingService, "test-version")
 
@@ -1382,14 +1214,6 @@ func newContractDeps(t *testing.T) *contractDeps {
 	v1Usage.Use(jwtAuth)
 	v1Usage.GET("/usage", usageHandler.List)
 	v1Usage.GET("/usage/stats", usageHandler.Stats)
-
-	v1Subs := v1.Group("")
-	v1Subs.Use(jwtAuth)
-	v1Subs.GET("/subscriptions", subscriptionHandler.List)
-
-	v1Redeem := v1.Group("")
-	v1Redeem.Use(jwtAuth)
-	v1Redeem.GET("/redeem/history", redeemHandler.GetHistory)
 
 	v1Admin := v1.Group("/admin")
 	v1Admin.Use(adminAuth)

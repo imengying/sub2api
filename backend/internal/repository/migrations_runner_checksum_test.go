@@ -88,15 +88,6 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		require.True(t, ok)
 	})
 
-	t.Run("112历史checksum可兼容", func(t *testing.T) {
-		ok := isMigrationChecksumCompatible(
-			"112_add_payment_order_provider_key_snapshot.sql",
-			"ffd3e8a2c9295fa9cbefefd629a78268877e5b51bc970a82d9b3f46ec4ebd15e",
-			"b75f8f56d39455682787696a3d92ad25b055444ca328fb7fca9a460a15d68d99",
-		)
-		require.True(t, ok)
-	})
-
 	t.Run("115历史checksum可兼容修复后的legacy external backfill", func(t *testing.T) {
 		ok := isMigrationChecksumCompatible(
 			"115_auth_identity_legacy_external_backfill.sql",
@@ -115,15 +106,6 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		require.True(t, ok)
 	})
 
-	t.Run("119历史checksum可兼容占位文件", func(t *testing.T) {
-		ok := isMigrationChecksumCompatible(
-			"119_enforce_payment_orders_out_trade_no_unique.sql",
-			"ebd2c67cce0116393fb4f1b5d5116a67c6aceb73820dfb5133d1ff6f36d72d34",
-			"0bbe809ae48a9d811dabda1ba1c74955bd71c4a9cc610f9128816818dfa6c11e",
-		)
-		require.True(t, ok)
-	})
-
 	t.Run("118多个历史checksum都可兼容当前版本", func(t *testing.T) {
 		for _, dbChecksum := range []string{
 			"a38243ca0a72c3a01c0a92b7986423054d6133c0399441f853b99802852720fb",
@@ -138,27 +120,4 @@ func TestIsMigrationChecksumCompatible(t *testing.T) {
 		}
 	})
 
-	t.Run("120多个历史checksum都可兼容新的notx修复版本", func(t *testing.T) {
-		for _, dbChecksum := range []string{
-			"e77921f79d539bc24575cb9c16cbe566d2b23ce816190343d0a7568f6a3fcf61",
-			"707431450603e70a43ce9fbd61e0c12fa67da4875158ccefabacea069587ab22",
-			"04b082b5a239c525154fe9185d324ee2b05ff90da9297e10dba19f9be79aa59a",
-		} {
-			ok := isMigrationChecksumCompatible(
-				"120_enforce_payment_orders_out_trade_no_unique_notx.sql",
-				dbChecksum,
-				"34aadc0db59a4e390f92a12b73bd74642d9724f33124f73638ae00089ea5e074",
-			)
-			require.True(t, ok)
-		}
-	})
-
-	t.Run("119未知checksum不兼容", func(t *testing.T) {
-		ok := isMigrationChecksumCompatible(
-			"119_enforce_payment_orders_out_trade_no_unique.sql",
-			"ebd2c67cce0116393fb4f1b5d5116a67c6aceb73820dfb5133d1ff6f36d72d34",
-			"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-		)
-		require.False(t, ok)
-	})
 }

@@ -98,11 +98,9 @@ func TestMigrationChecksumCompatibilityRules_CoverEditedUpgradeCompatibilityMigr
 	for _, name := range []string{
 		"109_auth_identity_compat_backfill.sql",
 		"110_pending_auth_and_provider_default_grants.sql",
-		"112_add_payment_order_provider_key_snapshot.sql",
 		"115_auth_identity_legacy_external_backfill.sql",
 		"116_auth_identity_legacy_external_safety_reports.sql",
 		"118_wechat_dual_mode_and_auth_source_defaults.sql",
-		"120_enforce_payment_orders_out_trade_no_unique_notx.sql",
 		"123_fix_legacy_auth_source_grant_on_signup_defaults.sql",
 	} {
 		rule, ok := migrationChecksumCompatibilityRules[name]

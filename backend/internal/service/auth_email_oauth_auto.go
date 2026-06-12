@@ -33,7 +33,6 @@ func (s *AuthService) LoginOrRegisterVerifiedEmailOAuthWithInvitation(
 	ctx context.Context,
 	input EmailOAuthIdentityInput,
 	invitationCode string,
-	affiliateCode string,
 ) (*TokenPair, *User, error) {
 	return s.loginOrRegisterVerifiedEmailOAuth(ctx, input, invitationCode)
 }

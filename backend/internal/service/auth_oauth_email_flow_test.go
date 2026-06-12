@@ -133,13 +133,10 @@ func newOAuthEmailFlowAuthService(
 	return NewAuthService(
 		nil,
 		userRepo,
-		redeemRepo,
 		refreshTokenCache,
 		cfg,
 		settingService,
 		emailService,
-		nil,
-		nil,
 		nil,
 		nil,
 		nil,
