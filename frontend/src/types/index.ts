@@ -93,7 +93,6 @@ export interface User {
   balance_notify_enabled: boolean
   balance_notify_threshold: number | null
   balance_notify_extra_emails: NotifyEmailEntry[]
-  subscriptions?: UserSubscription[] // User's active subscriptions
   last_active_at?: string | null
   created_at: string
   updated_at: string
@@ -209,117 +208,6 @@ export interface AuthResponse {
 
 export interface CurrentUserResponse extends User {
   run_mode?: 'standard'
-}
-
-// ==================== Subscription Types ====================
-
-export interface Subscription {
-  id: number
-  user_id: number
-  name: string
-  url: string
-  type: 'clash' | 'v2ray' | 'surge' | 'quantumult' | 'shadowrocket'
-  update_interval: number // in hours
-  last_updated: string | null
-  node_count: number
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
-export interface CreateSubscriptionRequest {
-  name: string
-  url: string
-  type: Subscription['type']
-  update_interval?: number
-}
-
-export interface UpdateSubscriptionRequest {
-  name?: string
-  url?: string
-  type?: Subscription['type']
-  update_interval?: number
-  is_active?: boolean
-}
-
-// ==================== Announcement Types ====================
-
-export type AnnouncementStatus = 'draft' | 'active' | 'archived'
-export type AnnouncementNotifyMode = 'silent' | 'popup'
-
-export type AnnouncementConditionType = 'subscription' | 'balance'
-
-export type AnnouncementOperator = 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'eq'
-
-export interface AnnouncementCondition {
-  type: AnnouncementConditionType
-  operator: AnnouncementOperator
-  group_ids?: number[]
-  value?: number
-}
-
-export interface AnnouncementConditionGroup {
-  all_of?: AnnouncementCondition[]
-}
-
-export interface AnnouncementTargeting {
-  any_of?: AnnouncementConditionGroup[]
-}
-
-export interface Announcement {
-  id: number
-  title: string
-  content: string
-  status: AnnouncementStatus
-  notify_mode: AnnouncementNotifyMode
-  targeting: AnnouncementTargeting
-  starts_at?: string
-  ends_at?: string
-  created_by?: number
-  updated_by?: number
-  created_at: string
-  updated_at: string
-}
-
-export interface UserAnnouncement {
-  id: number
-  title: string
-  content: string
-  notify_mode: AnnouncementNotifyMode
-  starts_at?: string
-  ends_at?: string
-  read_at?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface CreateAnnouncementRequest {
-  title: string
-  content: string
-  status?: AnnouncementStatus
-  notify_mode?: AnnouncementNotifyMode
-  targeting: AnnouncementTargeting
-  starts_at?: number
-  ends_at?: number
-}
-
-export interface UpdateAnnouncementRequest {
-  title?: string
-  content?: string
-  status?: AnnouncementStatus
-  notify_mode?: AnnouncementNotifyMode
-  targeting?: AnnouncementTargeting
-  starts_at?: number
-  ends_at?: number
-}
-
-export interface AnnouncementUserReadStatus {
-  user_id: number
-  email: string
-  username: string
-  balance: number
-  eligible: boolean
-  read_at?: string
 }
 
 // ==================== Proxy Node Types ====================
@@ -1508,67 +1396,6 @@ export interface UpdateUserRequest {
 export interface ChangePasswordRequest {
   old_password: string
   new_password: string
-}
-
-// ==================== User Subscription Types ====================
-
-export interface UserSubscription {
-  id: number
-  user_id: number
-  group_id: number
-  status: 'active' | 'expired' | 'revoked'
-  starts_at: string
-  daily_usage_usd: number
-  weekly_usage_usd: number
-  monthly_usage_usd: number
-  daily_window_start: string | null
-  weekly_window_start: string | null
-  monthly_window_start: string | null
-  created_at: string
-  updated_at: string
-  expires_at: string | null
-  user?: User
-  group?: Group
-}
-
-export interface SubscriptionProgress {
-  subscription_id: number
-  daily: {
-    used: number
-    limit: number | null
-    percentage: number
-    reset_in_seconds: number | null
-  } | null
-  weekly: {
-    used: number
-    limit: number | null
-    percentage: number
-    reset_in_seconds: number | null
-  } | null
-  monthly: {
-    used: number
-    limit: number | null
-    percentage: number
-    reset_in_seconds: number | null
-  } | null
-  expires_at: string | null
-  days_remaining: number | null
-}
-
-export interface AssignSubscriptionRequest {
-  user_id: number
-  group_id: number
-  validity_days?: number
-}
-
-export interface BulkAssignSubscriptionRequest {
-  user_ids: number[]
-  group_id: number
-  validity_days?: number
-}
-
-export interface ExtendSubscriptionRequest {
-  days: number
 }
 
 // ==================== Query Parameters ====================
